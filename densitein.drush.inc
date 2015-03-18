@@ -109,7 +109,7 @@ function densitein_densitein($site = '') {
   
   $settings = densitesa_get_filenames($site, $_SERVER['PWD']);
   
-  $res = densitesa_download_drupal_file(&$settings);
+  $res = densitesa_download_drupal_file($settings);
   if (!$res){
     densite_print(dt("Could not download drupal") . "\n");
     return 1;

@@ -73,11 +73,15 @@ function sitespinner_drush_help($section) {
 /**
  * function which will try to enable a sub-site to a drupal base site
  *
- * @param
- *    string $site the name of the site to enable
- * @return
- *    int 1 on failure on 0 on success. This will send exit code to
- *    the shell.
+ * @param string $base
+ *   The source alias. May be '@self'
+ *
+ * @param string $destination
+ *   The destination alias.
+ *
+ * @return int
+ *   1 on failure on 0 on success. This will send exit code to
+ *   the shell.
  */
 function sitespinner_sitespinner($base, $destination) {
 
@@ -85,92 +89,28 @@ function sitespinner_sitespinner($base, $destination) {
   $silent = drush_get_option('s');
   $simulate = drush_get_option('simulate');
 
-  $context_status = _core_site_status_table();
-
   $base_site_alias_record = drush_sitealias_get_record($base);
+  if (!$base_site_alias_record) {
+    sitespinner_print(dt("'@alias' was not recognized as a valid source site alias. Exit. ", array('@alias' => $base)) . "\n");
+    return 1;
+  }
   $destination_site_alias_record = sitespinner_drush_sitealias_get_record($destination);
-
-  // Make sure we are running inside a installed version of drupal.
-  if (!$drupal_root = drush_get_context('DRUSH_DRUPAL_ROOT')) {
-    return dt("Could not find a valid install of drupal") . "\n";
+  if (!$destination_site_alias_record) {
+    sitespinner_print(dt("'@alias' was not recognized as a valid destination site alias. Exit. ", array('@alias' => $destination)) . "\n");
+    return 1;
   }
 
-  if (empty($base)) {
-    sitespinner_print(dt("You need to specify a site to create. "));
-    $site = sitespinner_readline(dt("Enter sub-site name and hit return: "));
-  }
+//  print_r($base_site_alias_record);
+//  print_r($destination_site_alias_record);
 
-  if (empty($domain) || !(in_array($domain, array('path', 'domain', 'subdomain')))) {
-    sitespinner_print(dt("Please indicate the domain type to use for this site by entering a number from the following list\n"));
-    $reply = 'none yet';
-    while (!in_array($reply, array(1, 2, 3))) {
-      if ($reply != 'none yet') {
-        sitespinner_print(dt("\n\":reply\" was not a valid choice. Please indicate the domain type to use for this site by entering a number from the following list\n", array(':reply' => $reply)));
-      }
-      sitespinner_print(dt("[1] = \"path\" (default): the new site will be found at !domain/yoursitename\n", array('!domain' => 'your.domain')));
-      sitespinner_print(dt("[2] = \"domain\": the new site will be found at yoursitename\n"));
-      sitespinner_print(dt("[3] = \"subdomain\": the new site will be found at yoursitename.!domain\n", array('!domain' => 'your.domain')));
-      $reply = sitespinner_readline(dt("Enter sub-site name and hit return: "));
-      if ($reply == '') {
-        $reply = 1;
-      }
+  if (empty($destination_site_alias_record['sitespinner-destination']['create-domain']['type']) || !(in_array($destination_site_alias_record['sitespinner-destination']['create-domain']['type'], array('path', 'domain', 'subdomain')))) {
+    $types = array('path', 'domain', 'subdomain');
+    $reply = drush_choice($types, 'Please indicate the domain type to use for this site by entering a number from the following list.', '!value');
+    if ($reply === FALSE) {
+      return 1;
     }
-    $choices = array(1 => 'path', 2 => 'domain', 3 => 'subdomain');
-    $domain = $choices[$reply];
+    $domain = $types[$reply];
     sitespinner_print(dt("\"@domain\" was chosen for the domain setting.\n", array('@domain' => $domain)));
-
-  }
-
-  if (empty($root_config)) {
-    sitespinner_print(dt("Do you want to use a root configuration file? "));
-    $reply = sitespinner_readline(dt("y[n]: "));
-    if (strtolower($reply) == 'y') {
-      $root_config = sitespinner_readline(dt("Enter the path to the root configuration file and hit return: "));
-    }
-  }
-
-  if (empty($site_config)) {
-    sitespinner_print(dt("Do you want to use a site configuration file? "));
-    $reply = sitespinner_readline(dt("y[n]: "));
-    if (strtolower($reply) == 'y') {
-      $site_config = sitespinner_readline(dt("Enter the path to the site configuration file and hit return: "));
-    }
-  }
-
-  if (empty($site) && empty($force)) {
-    sitespinner_print(dt("You need to specify a site. Exit. ") . "\n");
-    return 1;
-  }
-
-  if (sitespinner_sub_exists($site) && empty ($force)) {
-    sitespinner_print(dt("That site seems to exist as a sub-site already. Use the '-f' flag to force recreation. Exit.") . "\n");
-    return 1;
-  }
-
-  if (sitespinner_base_exists($site) && empty ($force)) {
-    sitespinner_print(dt("That site seems to exist as base site. Use the '-f' flag to force recreation. Exit.") . "\n");
-    return 1;
-  }
-
-  // Load the root and site configurations.
-  $cwd = drush_cwd();
-  if ($root_config) {
-    if (file_exists($cwd . '/' . $root_config)) {
-      require_once $cwd . '/' . $root_config;
-    }
-    else {
-      sitespinner_print(dt("Could not load root site configuration file. Exit.") . "\n");
-      return 1;
-    }
-  }
-  if ($site_config) {
-    if (file_exists($cwd . '/' . $site_config)) {
-      require_once $cwd . '/' . $site_config;
-    }
-    else {
-      sitespinner_print(dt("Could not load site configuration file. Exit.") . "\n");
-      return 1;
-    }
   }
 
   // sudo :         sudo to ensure that we can log in as su
@@ -188,12 +128,15 @@ function sitespinner_sitespinner($base, $destination) {
   sitespinner_print("\n");
 //  print_r(get_defined_vars());
 
-  $destination_db_spec = sitespinner_enable_db($site);
+  $destination_db_spec = sitespinner_enable_db($destination_site_alias_record);
   if (!$destination_db_spec) {
     sitespinner_print(dt("Could not make database. Exit\n"));
     return 1;
   }
-  sitespinner_create_site($site, $destination_db_spec);
+
+  print_r($destination_db_spec);
+  return 1;
+//  sitespinner_create_site($site, $destination_db_spec);
 //  sitespinner_create_virtualhost($site);
 
   // Copy database and files from source.
@@ -606,55 +549,45 @@ function sitespinner_copy_files_from_source($source, $destination) {
 // {{{ sitespinner_enable_db($site)
 
 /**
- * function for creating a database using readline commands
- * the function asks some questions and out of them the database
- * will be created
+ * Create a database using the db specs in the $alias record.
  *
- * @param
- *   string $site the name of the website to enable a database for
- * @param
- *   int  $install. If positive we are in install mode and 0 we are
- *        installaing a sub or base site.
- * @return
- *   array $db_spec containing the newly created database info
- *         or 0 on failure
+ * @param array $alias_record
+ *  The site alias record for the destination database. Must include a database
+ *  specification as an array in the form used in settings.php in the
+ *  ['sitespinner-destination'] portion of the alias. E.g.
+ *  $alias_record['sitespinner-destination']['databases']['default']['default'] = array(
+ *    'database' => 'database_name',
+ *    'username' => 'user_name',
+ *    'password' => 'password',
+ *    'host'     => 'localhost',
+ *    'port'     => '',
+ *    'driver'   => 'mysql',
+ *  );
+ *
+ * @return array
+ *    containing the newly created database info or 0 on failure
  */
-function sitespinner_enable_db($site, $install = 0) {
-  $db_spec = array();
-  $db_spec = sitespinner_get_db_spec();
-  $db_name = preg_replace("[\.-]", "", $site);
-
-  if ($install) {
-    // if it's an install only use manual procedure
-    $db_spec = sitespinner_enable_db_manual();
-  }
-  else {
-    $output = dt("Found a default connection with:\n");
-    $output .= dt("Driver:         ") . $db_spec['driver'] . "\n";
-    $output .= dt("Host:           ") . $db_spec['host'] . "\n";
-    $output .= dt("User:           ") . $db_spec['username'] . "\n";
-    $output .= dt("Password:       ") . $db_spec['password'] . "\n\n";
-    $output .= dt("Automatic generated name for database will be:") . "\n";
-    $output .= dt("database        ") . $db_name . "\n\n";
-
-    sitespinner_print($output);
-
-    $readline_str = dt("Press 'Y' to use these settings. Press 'n' to proceed with manual install of database");
-    $readline_str .= dt(" [Y/n]? ");
-    $db_use_default = strtoupper(sitespinner_readline($readline_str));
-
-    // proceeding manually
-    if ($db_use_default == 'Y' || empty($db_use_default)) {
-      $db_spec['database'] = $db_name;
-    }
-    else {
-      $db_spec = sitespinner_enable_db_manual();
-    }
-  }
+function sitespinner_enable_db($alias_record) {
 
   sitespinner_print(dt("Proceeding and trying to create database. \nYou may be prompted for password: ") . "\n");
 
   // Check to see if this database already exists and if we can connect to it
+  if (empty($alias_record['sitespinner-destination']['databases']['default']['default'])) {
+    return drush_set_error(dt("Database configuration needs to exist in 'sitespinner-destination' section of the destination site alias"));
+  }
+  $db_spec = $alias_record['sitespinner-destination']['databases']['default']['default'];
+
+  // We only know how to handle mysql - sorry!
+  // TODO support other database types
+  if (!empty($db_spec['driver']) && $db_spec['driver'] != 'mysql') {
+    return drush_set_error(dt("'!driver' databases are not supported at this time. Exit.", array('!driver' => $db_spec['driver'])));
+  }
+
+  // Use db_creator credentials, if provided.
+  if (!empty($alias_record['sitespinner-destination']['db_creator'])) {
+    $db_spec['username'] = $alias_record['sitespinner-destination']['db_creator']['username'];
+    $db_spec['password'] = $alias_record['sitespinner-destination']['db_creator']['password'];
+  }
 
   if (sitespinner_database_exists($db_spec)) {
     sitespinner_print("\n" . dt("Database ") . $db_spec['database'] . dt(" already exists and user can connect to it.") . "\n");
@@ -681,7 +614,7 @@ function sitespinner_enable_db($site, $install = 0) {
   }
   else {
     if (!sitespinner_create_db($db_spec)) {
-      sitespinner_enable_db($site, $install);
+      sitespinner_enable_db($alias_record, 1);
       return 0;
     }
     else {

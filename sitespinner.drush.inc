@@ -28,10 +28,11 @@ function sitespinner_drush_command() {
 
   // The key in the $items array is the name of the command.
   $items['sitespinner'] = array(
+    'description' => dt('create a drupal multi-site install. Will create the specified multi-site in the base /sites folder. E.g. yourmultisite will be placed in sites/www.base-site.net.yourmultisite'),
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     // The name of the function implementing your command.
     'callback' => 'sitespinner_sitespinner',
     // A short description of your command.
-    'description' => dt('Enable a drupal multi-site install. Will create the specified multi-site in the base /sites folder. E.g. yourmultisite will be placed in sites/www.base-site.net.yourmultisite'),
     'arguments' => array(
       'base-alias' => dt('The name of the site alias that will serve as the source template.'),
       'destination-alias' => dt('The drush site alias for the sub-site to create. Use the "domain" option if this site should be reachable on its own domain or subdomain.'),
@@ -86,13 +87,15 @@ function sitespinner_sitespinner($base, $destination) {
 
   $context_status = _core_site_status_table();
 
+  $base_site_alias_record = drush_sitealias_get_record($base);
+  $destination_site_alias_record = sitespinner_drush_sitealias_get_record($destination);
 
   // Make sure we are running inside a installed version of drupal.
   if (!$drupal_root = drush_get_context('DRUSH_DRUPAL_ROOT')) {
     return dt("Could not find a valid install of drupal") . "\n";
   }
 
-  if (empty($site)) {
+  if (empty($base)) {
     sitespinner_print(dt("You need to specify a site to create. "));
     $site = sitespinner_readline(dt("Enter sub-site name and hit return: "));
   }
@@ -1274,4 +1277,64 @@ function sitespinner_create_mysql_copy_command($source_db_spec, $dest_db_spec) {
   ));
 
   return $command;
+}
+
+/**
+ * Get a site alias record with sitespinner data recursively merged from parents
+ *
+ * @param $alias_name
+ * @return array
+ */
+function sitespinner_drush_sitealias_get_record($alias_name) {
+
+  $raw_destination_site_alias_record = _drush_sitealias_load_alias($alias_name);
+  $destination_site_alias_record = drush_sitealias_get_record($alias_name);
+  if (!empty($raw_destination_site_alias_record['parent'])) {
+    // Fetch and merge in each parent's sitespinner configuration
+    foreach (explode(',', $raw_destination_site_alias_record['parent']) as $parent) {
+      $parent_record = sitespinner_drush_sitealias_get_record($parent);
+      if(!empty($parent_record['sitespinner-destination'])) {
+        if(empty($raw_destination_site_alias_record['sitespinner-destination'])) {
+          $destination_site_alias_record['sitespinner-destination'] = $parent['sitespinner-destination'];
+        }
+        else {
+          $destination_site_alias_record['sitespinner-destination'] = _sitespinner_array_merge_recursive_distinct($parent_record['sitespinner-destination'], $raw_destination_site_alias_record['sitespinner-destination']);
+        }
+      }
+      $destination_site_alias_record = array_merge($parent_record, $destination_site_alias_record);
+    }
+  }
+
+  return $destination_site_alias_record;
+}
+
+
+/**
+ * Recursively merge two arrays while keeping scalar values unique
+ *
+ * PHP's native array_merge_recursive function, when the two arrays having a scalar
+ * value at a given array index, converts that value to an array with the values
+ * from both source arrays. This version uses the value from the second array.
+ *
+ * @param array $array1
+ * @param array $array2
+ * @return array
+ */
+function _sitespinner_array_merge_recursive_distinct ( array &$array1, array &$array2 )
+{
+  $merged = $array1;
+
+  foreach ( $array2 as $key => &$value )
+  {
+    if ( is_array ( $value ) && isset ( $merged [$key] ) && is_array ( $merged [$key] ) )
+    {
+      $merged [$key] = _sitespinner_array_merge_recursive_distinct ( $merged [$key], $value );
+    }
+    else
+    {
+      $merged [$key] = $value;
+    }
+  }
+
+  return $merged;
 }

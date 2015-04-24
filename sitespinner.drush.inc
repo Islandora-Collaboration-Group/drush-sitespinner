@@ -9,91 +9,6 @@
  * functions that are used internally will do the opposite.
  */
 
-// {{{ prepend.
-// include configuration file.
-$sitespinner_conf = dirname(__FILE__) . "/sitespinner.conf";
-if (file_exists($sitespinner_conf)) {
-  require_once $sitespinner_conf;
-}
-else {
-  $sitespinner_conf_dist = dirname(__FILE__) . "/dist-sitespinner.conf";
-  require_once $sitespinner_conf_dist;
-}
-// }}}
-
-// {{{ sitespinner_init()
-/**
- * Function for checking current configuration.
- *
- * @return int
- *   1 = success
- *   0 = fail
- */
-function sitespinner_init() {
-  $sitespinner_dir = dirname(__FILE__);
-  $sitespinner_conf = dirname(__FILE__) . "/sitespinner.conf";
-  $sitespinner_conf_dist = dirname(__FILE__) . "/dist-sitespinner.conf";
-
-//  $sitespinner_apache2_dir = dirname(__FILE__);
-//  $sitespinner_apache2_conf = dirname(__FILE__) . "/apache2/apache2.conf";
-//  $sitespinner_apache2_conf_dist = dirname(__FILE__) . "/apache2/dist-apache2.conf";
-
-  $sitespinner_sql_dir = dirname(__FILE__) . "/sql";
-
-  if (file_exists($sitespinner_conf) /*&& file_exists($sitespinner_apache2_conf)*/ && file_exists($sitespinner_sql_dir)) {
-    return 1;
-  }
-
-  if (!file_exists($sitespinner_conf)) {
-    $output = dt("Configuration file not found: ") . $sitespinner_conf . "\n";
-    sitespinner_print($output);
-    $readline_str = dt("Do you want to create: ") . $sitespinner_conf;
-    $readline_str .= dt(" from ") . $sitespinner_conf_dist . dt(" [Y/n]?");
-    $create_sitespinner_conf = strtoupper(sitespinner_readline($readline_str));
-    if ($create_sitespinner_conf == 'Y' || empty($create_sitespinner_conf)) {
-      sitespinner_exec("cp " . $sitespinner_conf_dist . " " . $sitespinner_conf);
-    }
-    else {
-      sitespinner_print(dt("We can not proceed without a default configuration file. Exit" . "\n"));
-      return 0;
-    }
-  }
-
-//  if (!file_exists($sitespinner_apache2_conf)) {
-//    $output = dt("Apache2 configuration file not found: ") . $sitespinner_apache2_conf . "\n";
-//    sitespinner_print($output);
-//    $readline_str = dt("Do you want to create: ") . $sitespinner_apache2_conf;
-//    $readline_str .= dt(" from ") . $sitespinner_apache2_conf_dist . dt(" [Y/n]?");
-//    $create_apache2_conf = strtoupper(sitespinner_readline($readline_str));
-//    if ($create_apache2_conf == 'Y' || empty($create_apache2_conf)) {
-//      sitespinner_exec("cp " . $sitespinner_apache2_conf_dist . " " . $sitespinner_apache2_conf);
-//    }
-//    else {
-//      sitespinner_print(dt("We can not proceed without a default apache file. Exit" . "\n"));
-//      return 0;
-//    }
-//  }
-
-  if (!file_exists($sitespinner_sql_dir)) {
-    $output = dt("Sql dir not found: ") . $sitespinner_sql_dir . "\n";
-    sitespinner_print($output);
-    $readline_str = dt("Do you want to create: ") . $sitespinner_sql_dir . dt(" [Y/n]?");
-    $create_sql_dir = strtoupper(sitespinner_readline($readline_str));
-    if ($create_sql_dir == 'Y' || empty($create_sql_dir)) {
-      sitespinner_exec("mkdir " . $sitespinner_sql_dir);
-    }
-    else {
-      sitespinner_print(dt("We can not proceed without a sql dir. Exit" . "\n"));
-      return 0;
-    }
-  }
-  sitespinner_print(dt("Look at the two configuration files created and change them as you like:") . "\n");
-  sitespinner_print($sitespinner_conf . "\n");
-//  sitespinner_print($sitespinner_apache2_conf . "\n");
-  return 1;
-}
-
-// }}}
 // {{{ sitespinner_drush_command()
 
 /**
@@ -111,13 +26,6 @@ function sitespinner_drush_command() {
   $options['-s'] = 'Silence. Less output';
   $options['--simulate'] = 'Use simulate when you want to see what will happen to your system. It will print the commands to be executed.';
 
-  $site_options = array(
-    'source-alias' => dt('A drush site alias name to define the base site that will be cloned to create the multi-site. E.g. "@base-site".  (To use this option, this site alias file must have been created and installed in your drush configuration.)'),
-    'domain' => dt('["path"], "subdomain", "domain": If "path" (the default) is entered, the new site will be found at !domain/yoursitename. If "domain" is entered, a new domain will be created at yoursitename. If "subdomain" is entered, a new subdomain will be created at yoursitename.!domain', array('!domain' => 'your.domain')),
-    'site-config' => dt('Path to a file with configuration options for the new site. These will override settings from the base site.'),
-    'root-config' => dt('Path to a file with configuration options for the new site. These will override settings from the base site.'),
-  );
-
   // The key in the $items array is the name of the command.
   $items['sitespinner'] = array(
     // The name of the function implementing your command.
@@ -125,35 +33,10 @@ function sitespinner_drush_command() {
     // A short description of your command.
     'description' => dt('Enable a drupal multi-site install. Will create the specified multi-site in the base /sites folder. E.g. yourmultisite will be placed in sites/www.base-site.net.yourmultisite'),
     'arguments' => array(
-      'site' => dt('The drupal sub-site to create. Use the "domain" option if this site should be reachable on its own domain or subdomain.'),
-    ),
-    'options' => array_merge($site_options, $options),
-  );
-
-  $items['dissite'] = array(
-    // the name of the function implementing your command.
-    'callback' => 'sitespinner_dissite',
-    // a short description of your command
-    'description' => dt("Disables a drupal sub-site. Will remove the spcified sub-site. e.g. www.yoursite.net in sites/www.yoursite.net will be removed."),
-    'arguments' => array(
-      'site' => dt('The drupal site to disable. e.g. yoursite.net. Only works when a drupal install is enabled.'),
+      'base-alias' => dt('The name of the site alias that will serve as the source template.'),
+      'destination-alias' => dt('The drush site alias for the sub-site to create. Use the "domain" option if this site should be reachable on its own domain or subdomain.'),
     ),
     'options' => $options,
-  );
-
-  $items['listsites'] = array(
-    // the name of the function implementing your command.
-    'callback' => 'sitespinner_list_all_sites',
-    // a short description of your command
-    'description' => dt("Lists all drupal base sites and all sub-sites of base sites enabled on your server."),
-  );
-
-  $items['sitespinner_test'] = array(
-    // the name of the function implementing your command.
-    'callback' => 'sitespinner_test',
-    'description' => dt("Used for testing"),
-    // a short description of your command
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
   );
 
   return $items;
@@ -176,134 +59,14 @@ function sitespinner_drush_command() {
  */
 function sitespinner_drush_help($section) {
   switch ($section) {
-    case 'drush:dissite':
-      return dt("dissite disables a site by removing the folder inside sites/ e.g. sites/www.yoursite.net and also the database and the virtual host.");
     case 'drush:sitespinner':
-      return dt("drush sitespinner is a script that creates a new multi-site cloned from an existing base site. In detail, it: \n* Creates a new folder inside the /sites/ folder for the new site\n* Copies over the base site's :files directory.\n* Creates a new database and copies the data from the base site's database.\n* Creates a settings.php file.\n* Root and site-specific configuration overrides may be provided by additional configuration files.
-\nThe base site is determined either by the current drush site context, or by including a base site drush alias as a command option.
-To use, you must first cd to the sites/default or sites/<base sitename> folder, or include the --source-alias option in the command.
-If 'domain' or 'subdomain' is specified in the command options, the command will create a <VirutalHost> configuration and enable it.");
-    case 'drush:listsites':
-      return dt("Lists all drupal base sites and all sub-sites to base sites enabled on your server.");
+      return dt("drush sitespinner is a script that creates a new multi-site cloned from an existing base site. In detail, it: \n* Creates a new folder inside the /sites/ folder for the new site\n* Copies over the base site's :files directory.\n* Creates a new database and copies the data from the base site's database.\n* Creates a settings.php file.\n* Root and site-specific configuration overrides may be provided in the destination site alias.
+\nThe command requires two drush site aliases as arguments: base site, and destination site. Therefore, before you can spin up a new site, you need to have created site aliases for both of these.
+\nConsult the sample aliases file included with this command for complete instructions.");
   }
 }
 
 // }}} sitespinner_drush_help ()
-// {{{ sitespinner_exec()
-
-/**
- * Any execution (exec) of a command is wrapped around the sitespinner_exec
- * command.
- * Then we can easily control when to halt on errors or when to force.
- * We can also control if the exec command shall be used in silence or
- * simulated.
- *
- * @param string $command
- *   the command to be executed
- *
- * @param int $force
- *   set in case we want the script to continue executing. This
- *   also silences the command. This param is meant as a way to test shell
- *   commands, e.g. testing if a database exists or not, without killing the
- *   script.
- *
- * @return int
- *   $result, the $result of the executed shell command 0 on success and
- *   positive int on failure. Depending on the $force flag it will stop
- *   executing the script on failure (positive int) and return the result.
- */
-function sitespinner_exec($command, $force = 0) {
-  // Get options.
-  $silent = drush_get_option('s');
-  $simulate = drush_get_option('simulate');
-
-  // If we set the force when using sitespinner_exec
-  // from inside these scripts, we will only use the result internally.
-  if (!$force) {
-    $force = drush_get_option('f');
-  }
-  else {
-    $silent = 1;
-  }
-
-  $message = '';
-  if ($simulate) {
-    $message = SIMULATE_PREPEND;
-    $message .= $command . "\n";
-    sitespinner_print($message);
-    return 0;
-  }
-
-  $output = $result = 0;
-  // Exec command in silence. Store output of executed command in $output.
-  exec($command . ' 2>&1', $output, $result);
-
-  // ERROR executing command.
-  if ($result) {
-    $message .= ERROR_PREPEND;
-    $message .= $command . "\n";
-    if (empty($silent)) {
-      sitespinner_print($message);
-      sitespinner_print($output);
-    }
-    if (empty($force)) {
-      return exit(1);
-    }
-  }
-
-  // OK executing command.
-  if (!$result) {
-    $message .= NO_ERROR_PREPEND;
-    $message .= $command . "\n";
-
-    if (empty($silent)) {
-      sitespinner_print($message);
-      sitespinner_print($output);
-    }
-  }
-  return $result;
-}
-
-// }}} sitespinner_exec()
-// {{{ sitespinner_print($output)
-
-/**
- * function for writing output to the screen. Or making a nice string
- * out of an array
- *
- * @param
- *    int $ret if a positive integer. The function will not print, but return
- *    content as a string instead
- * @param
- *   string $output the return string from sitespinner_exec commands to write out
- * @return
- *   string $buf optional. If $ret is set function will return a string
- */
-function sitespinner_print($output, $ret = 0) {
-  // exec uses a array to store output in
-  $buf = '';
-  if (is_array($output)) {
-    foreach ($output as $line) {
-      if (!$ret) {
-        print($line) . "\n";
-      }
-      else {
-        $buf .= $line . "\n";
-      }
-    }
-    // else: just print the line
-  }
-  else {
-    if (!$ret) {
-      print($output);
-    }
-  }
-  if ($ret) {
-    return $buf;
-  }
-}
-
-// }}}
 // {{{ sitespinner_sitespinner($site)
 
 /**
@@ -315,21 +78,11 @@ function sitespinner_print($output, $ret = 0) {
  *    int 1 on failure on 0 on success. This will send exit code to
  *    the shell.
  */
-function sitespinner_sitespinner($site) {
-
-  $res = sitespinner_init();
-  if (!$res) {
-    return $res;
-  }
+function sitespinner_sitespinner($base, $destination) {
 
   $force = drush_get_option('f');
   $silent = drush_get_option('s');
   $simulate = drush_get_option('simulate');
-
-  $root_config = drush_get_option('root-config');
-  $site_config = drush_get_option('site-config');
-  $source_alias = drush_get_option('source-alias');
-  $domain = drush_get_option('domain');
 
   $context_status = _core_site_status_table();
 
@@ -485,102 +238,118 @@ function sitespinner_sitespinner($site) {
 }
 
 // }}}
-// {{{ sitespinner_print_status
-/*
- * function for printing status of install
- * @param   int  $db_res
- */
-function sitespinner_print_status($site) {
-  $status = dt("Manual install. Continue on http://") . $site . "/install.php\n";
-  $status .= dt("Or use:\n\ncd $site/htdocs && drush site-install\n\n to do it from command line\n");
-  sitespinner_print(dt($status));
-  return 0;
-}
-
-// }}}
-// {{{ sitespinner_dissite($site)
+// {{{ sitespinner_exec()
 
 /**
- * function (callback) Disable a drupal sub-site
- * returns to the shell
+ * Any execution (exec) of a command is wrapped around the sitespinner_exec
+ * command.
+ * Then we can easily control when to halt on errors or when to force.
+ * We can also control if the exec command shall be used in silence or
+ * simulated.
  *
- * @param   string $site the drupal website to disable
- * @return  int 0 on success and 1 on failure
+ * @param string $command
+ *   the command to be executed
+ *
+ * @param int $force
+ *   set in case we want the script to continue executing. This
+ *   also silences the command. This param is meant as a way to test shell
+ *   commands, e.g. testing if a database exists or not, without killing the
+ *   script.
+ *
+ * @return int
+ *   $result, the $result of the executed shell command 0 on success and
+ *   positive int on failure. Depending on the $force flag it will stop
+ *   executing the script on failure (positive int) and return the result.
  */
-function sitespinner_dissite($site) {
-  $res = sitespinner_init();
-  if (!$res) {
-    return $res;
-  }
-
-  $force = drush_get_option('f');
+function sitespinner_exec($command, $force = 0) {
+  // Get options.
   $silent = drush_get_option('s');
   $simulate = drush_get_option('simulate');
 
-  $all_sites = array();
-  $all_sites = sitespinner_get_sub_sites();
+  // If we set the force when using sitespinner_exec
+  // from inside these scripts, we will only use the result internally.
+  if (!$force) {
+    $force = drush_get_option('f');
+  }
+  else {
+    $silent = 1;
+  }
 
-  if (empty($site)) {
-    if (empty($all_sites) && empty($force)) {
-      sitespinner_print(dt("There do not seem to be any valid sub-sites installed in this base.") . "\n");
-      return 1;
+  $message = '';
+  if ($simulate) {
+    $message = SIMULATE_PREPEND;
+    $message .= $command . "\n";
+    sitespinner_print($message);
+    return 0;
+  }
+
+  $output = $result = 0;
+  // Exec command in silence. Store output of executed command in $output.
+  exec($command . ' 2>&1', $output, $result);
+
+  // ERROR executing command.
+  if ($result) {
+    $message .= ERROR_PREPEND;
+    $message .= $command . "\n";
+    if (empty($silent)) {
+      sitespinner_print($message);
+      sitespinner_print($output);
     }
-    else {
-      sitespinner_print(dt("You need to specify a sub-site: Your choices are: \n"));
-      sitespinner_list_sub_sites();
-      $site = sitespinner_readline(dt("Enter site to disable: "));
+    if (empty($force)) {
+      return exit(1);
     }
   }
 
-  if (sitespinner_base_exists($site) && empty($force)) {
-    sitespinner_print(dt("That site is a base site. Use the command 'drush dissitesa $site' to remove it.") . "\n");
-    return 1;
-  }
+  // OK executing command.
+  if (!$result) {
+    $message .= NO_ERROR_PREPEND;
+    $message .= $command . "\n";
 
-
-  if (!sitespinner_sub_exists($site) && empty($force)) {
-    sitespinner_print(dt("That site does not seem to exist.") . "\n");
-    return 1;
-  }
-
-  if (!sitespinner_sub_to_current($site)) {
-    sitespinner_print(dt("That site is not a sub site to a current drupal base. You need to go to the correct base site.") . "\n");
-    return 1;
-  }
-
-  sitespinner_exec('sudo echo -e "Started disabling a sub-site\n"');
-
-  $settings = sitespinner_get_filenames($site);
-  $readline_str = dt("Delete the following website: ") . $site . dt(" [Y/n]? ");
-  $site_delete_confirm = strtoupper(sitespinner_readline($readline_str));
-  if ($site_delete_confirm == 'Y' || empty($site_delete_confirm)) {
-
-    // delete database
-    $result = sitespinner_disable_db($settings['settings_file']);
-
-    $readline_str = dt("Remove apache2 configuration and reload apache: ") . $site . dt(" [Y/n]? ");
-    $apache2_delete_confirm = strtoupper(sitespinner_readline($readline_str));
-
-    if ($apache2_delete_confirm == 'Y' || empty($apache2_delete_confirm)) {
-      sitespinner_exec("sudo a2dissite " . $site);
-      sitespinner_exec("sudo /etc/init.d/apache2 reload");
-      sitespinner_exec("sudo rm " . $settings['apache_sites_avail']);
+    if (empty($silent)) {
+      sitespinner_print($message);
+      sitespinner_print($output);
     }
-
-    sitespinner_print(dt("Remove all site files found in: ") . "\n");
-    sitespinner_print($settings['www_base_site'] . "\n" . $settings['settings_dir']);
-    $readline_str = dt(" [Y/n]? ");
-    $site_files_delete_confirm = strtoupper(sitespinner_readline($readline_str));
-
-    if ($site_files_delete_confirm == 'Y' || empty($site_delete_confirm)) {
-      sitespinner_exec("sudo rm -rf " . $settings['www_base_site']);
-      sitespinner_exec("sudo rm -rf " . $settings['settings_dir']);
-    }
-    sitespinner_print(dt("Disabling site from crontab") . "\n");
-    sitespinner_disable_cron($site);
   }
+  return $result;
+}
 
-  return 0;
+// }}} sitespinner_exec()
+// {{{ sitespinner_print($output)
+
+/**
+ * function for writing output to the screen. Or making a nice string
+ * out of an array
+ *
+ * @param
+ *    int $ret if a positive integer. The function will not print, but return
+ *    content as a string instead
+ * @param
+ *   string $output the return string from sitespinner_exec commands to write out
+ * @return
+ *   string $buf optional. If $ret is set function will return a string
+ */
+function sitespinner_print($output, $ret = 0) {
+  // exec uses a array to store output in
+  $buf = '';
+  if (is_array($output)) {
+    foreach ($output as $line) {
+      if (!$ret) {
+        print($line) . "\n";
+      }
+      else {
+        $buf .= $line . "\n";
+      }
+    }
+    // else: just print the line
+  }
+  else {
+    if (!$ret) {
+      print($output);
+    }
+  }
+  if ($ret) {
+    return $buf;
+  }
 }
 
 // }}}
@@ -803,9 +572,8 @@ function sitespinner_sql_sync_from_alias($source_alias, $site) {
  * @param site
  *   The site name being created.
  */
-function sitespinner_copy_files_from_source($source, $site) {
+function sitespinner_copy_files_from_source($source, $destination) {
 
-  $dest_settings = sitespinner_get_filenames($site);
   sitespinner_print("Copying files directory: \n");
 
   if (strpos($source, '@') !== 0) {
@@ -921,56 +689,6 @@ function sitespinner_enable_db($site, $install = 0) {
 }
 
 // }}}
-// {{{ sitespinner_enable_db_manual()
-
-/**
- * function for enabling a database manually.
- * @return
- *   array $db_spec an array holding information about the database to be created
- */
-function sitespinner_enable_db_manual() {
-  $settings = array();
-  sitespinner_print(dt("Manual install of the database. ") . "\n");
-  if (!$db_spec['driver'] = SITESPINNER_DB_DRIVER) {
-    sitespinner_print(dt("You PHP cli version reports you have support for these drivers: "));
-    if (extension_loaded('mysql')) {
-      sitespinner_print(dt('mysql '));
-    }
-    if (extension_loaded('mysqli')) {
-      sitespinner_print(dt('mysqli '));
-    }
-    if (extension_loaded('pgsql')) {
-      sitespinner_print(dt('pgsql '));
-    }
-    sitespinner_print("\n");
-    $db_spec['driver'] = sitespinner_readLine(dt("Driver:         "));
-  }
-  else {
-    sitespinner_print("Driver from settings from sitespinner.conf: " . $db_spec['driver'] . "\n");
-  }
-  if (!$db_spec['host'] = SITESPINNER_DB_HOST) {
-    $db_spec['host'] = sitespinner_readLine(dt("Hostname:       "));
-  }
-  else {
-    sitespinner_print("Host from sitespinner.conf: " . $db_spec['host'] . "\n");
-  }
-  if (!$db_spec['username'] = SITESPINNER_DB_USERNAME) {
-    $db_spec['username'] = sitespinner_readLine(dt("Username:       "));
-  }
-  else {
-    sitespinner_print("Usernames from sitespinner.conf: " . $db_spec['username'] . "\n");
-  }
-  if (!$db_spec['password'] = SITESPINNER_DB_PASSWORD) {
-    $db_spec['password'] = sitespinner_readLine(dt("Password:       "));
-  }
-  else {
-    sitespinner_print("Password from sitespinner.conf: " . $db_spec['password'] . "\n");
-  }
-  $db_spec['database'] = sitespinner_readLine(dt("Database name:  "));
-  return $db_spec;
-}
-
-// }}}
 // {{{ sitespinner_database_exists($db_spec)
 /**
  * function for checking if database exists.
@@ -1011,523 +729,6 @@ function sitespinner_database_exists($db_spec) {
       }
     }
   }
-}
-
-// }}}
-// {{{ sitespinner_disable_db()
-
-/**
- * function for showing a confirm form on deleting a database
- *
- * @param
- *   string $settings_file the settings.php where the database will be deleted
- * @return
- *   int 0 on success postive int on failure
- */
-function sitespinner_disable_db($settings_file = NULL) {
-
-  $db_spec = _drush_sql_get_spec_from_settings($settings_file, 'source');
-  $readline_str = dt("Delete the following database: ") . $db_spec['database'] . dt(" [Y/n]? ");
-  $db_use_sitename = sitespinner_readline($readline_str);
-  if ($db_use_sitename == 'Y' || empty($db_use_sitename)) {
-    $result = sitespinner_delete_db($db_spec);
-    return $result;
-  }
-}
-
-// }}}
-// {{{ sitespinner_save_dump($db_spec)
-
-/**
- * @param
- *   array  $db_spec array holding information of the database to dump
- * @param
- *   string $dump_file, the string containing the path to the sql dump to be saved
- * @return
- *   int on success and 0 on failure
- */
-function sitespinner_save_dump($db_spec, $dump_file) {
-  // build command
-  // execute it
-
-  if ($db_spec['driver'] == 'mysql' || $db_spec['driver'] == 'mysqli') {
-    $command = "mysqldump -u " . $db_spec['username'] . " ";
-    $command .= "-p" . $db_spec['password'] . " ";
-    $command .= "-h" . $db_spec['host'] . " ";
-    $command .= $db_spec['database'] . " > " . $dump_file;
-  }
-  else {
-    if ($db_spec['driver'] == 'pgsql') {
-      $command = "export PGPASSWORD='$db_spec[password]';";
-      $command .= "pg_dump ";
-      $command .= "-h " . $db_spec['host'] . " ";
-      $command .= "-U " . $db_spec['username'] . " ";
-      $command .= $db_spec['database'] . " > " . $dump_file;
-    }
-    else {
-      return 0;
-    }
-  }
-  sitespinner_exec($command);
-  return 1;
-}
-
-// }}}
-// {{{ sitespinner_load_sql($db_spec)
-
-/**
- * @param
- *   array  $db_spec array holding information about the database to load the sql dump into
- * @param
- *   string $dump_file, the string containing the path to the sql dump to be loaded
- * @return
- *   int on success and 0 on failure
- */
-function sitespinner_load_dump($db_spec, $dump_file) {
-
-  if ($db_spec['driver'] == 'mysql' || $db_spec['driver'] == 'mysqli') {
-    $command = "mysql -u " . $db_spec['username'] . " ";
-    $command .= "-p" . $db_spec['password'] . " ";
-    $command .= "-h" . $db_spec['host'] . " ";
-    $command .= $db_spec['database'] . " < " . $dump_file;
-  }
-  else {
-    if ($db_spec['driver'] == 'pgsql') {
-      $command = "export PGPASSWORD='$db_spec[password]';";
-      $command .= "psql ";
-      $command .= "-h " . $db_spec['host'] . " ";
-      $command .= "-U " . $db_spec['username'] . " ";
-      $command .= $db_spec['database'] . " < " . $dump_file;
-    }
-    else {
-      sitespinner_print(dt("Unknown driver") . "\n");
-      return 0;
-    }
-  }
-  sitespinner_exec($command);
-  return 1;
-}
-
-// }}}
-// {{{ sitespinner_load_db($site, $db_spec, $install)
-/**
- * function for populating the newly created database through
- * readline interface
- *
- * @param
- *   string $site the drupal website to enable
- * @param
- *   array $db_spec an array holding the db_spec for the database to be loaded
- * @param
- *   int  $install, indicating if it is an install or not
- * @return
- *   int 1 no loaded db (continue with manual install on web)
- *       0 is failure and
- *       2 successfull loaded database
- */
-function sitespinner_load_db($site, $db_spec, $install = 0) {
-  // check to see if user wants to use an sql dump.
-  // if 'Yes' get a list of available dumps to use, if 'no' go to web install
-  $readline_str = dt("Load a sql dump into database: ") . $db_spec['database'] . dt(" [Y/n]? ");
-  $db_use_dump = strtoupper(sitespinner_readline($readline_str));
-
-  if ($db_use_dump == 'Y' || empty($db_use_dump)) {
-    $manual = 0;
-    // if we are installing only option will be from a file
-    if (!$install) {
-      $readline_str = dt("Do you want to use an sql dump from a running drupal [s]ite or dump from a [f]ile [s/f]? ");
-      $file_or_site = strtoupper(sitespinner_readline($readline_str));
-    }
-    else {
-      // we presume when making an install there is no active drupal site
-      $file_or_site = 'F';
-    }
-    // type of dump to read - From a file located in the commands/sitespinner/sql folder
-    switch ($file_or_site) {
-      case 'F' :
-        // use a file for generating database
-
-        $res = sitespinner_load_db_file($site, $db_spec);
-        if (!$res) {
-          return 0;
-        }
-        else {
-          if (SITESPINNER_DEBUG) {
-            print "Returning 2\n";
-          }
-          return 2;
-        }
-        break;
-      // or use a sites sql as a dump for the new site.
-      // if we are cloning a site, then all the sql can be
-      // imported. 
-      case 'S' :
-        $res = sitespinner_load_db_site($site, $db_spec);
-        if (!$res) {
-          return 0;
-        }
-        else {
-          return 2;
-        }
-        break;
-
-      default:
-        // wrong option start over
-        if (SITESPINNER_DEBUG) {
-          print "else Returning 0\n";
-        }
-        return 0;
-        break;
-    }
-  }
-  // no db loaded, it need to be a manual install
-  return 1;
-}
-
-// manual install
-// }}}
-// {{{ sitespinner_download_dumps
-
-/**
- * function sitespinner_download_dumps
- * just download some default sql dumps from a default
- * location if sql folder is empty
- *
- * @return
- *   int  positive on success and 0 on failure
- */
-function sitespinner_download_dumps() {
-
-  $url = "http://www.os-cms.net/sites/default/files";
-  $file = "sql";
-  $filetype = "tar.gz";
-  $filelong = $file . "." . $filetype;
-  $url_file = $url . "/" . $filelong;
-  $sql_dir = dirname(__FILE__) . "/sql";
-
-  #sitespinner_print($url_file. "\n");
-  #$dl_dumps = strtoupper(sitespinner_readline("Download and install default dumps (236 KB) for all versions of drupal [Y/n]? "));
-  #if ($dl_dumps == 'Y' || empty($dl_dumps)){      
-  system("wget " . $url_file);
-  system("wget " . $url_file . ".md5");
-  sitespinner_print(dt("Md5 validating of file ") . $filelong . "\n");
-  sitespinner_exec("md5sum -c " . $filelong . ".md5");
-  sitespinner_exec("tar xvfz " . $filelong);
-  sitespinner_exec("cp -Rf ./sql/* " . $sql_dir);
-  sitespinner_exec("rm " . $filelong);
-  sitespinner_exec("rm -Rf " . "./" . $file);
-  sitespinner_exec("rm " . $filelong . ".md5");
-  sitespinner_print(dt("sql dumps downloaded and installed") . "\n");
-  #} 
-
-}
-
-// }}}
-// {{{ sitespinner_load_db_file($site, $db_spec)
-
-/**
- * function for loadig database throug a file method
- *
- * @param
- *   string $site the drupal website to enable
- * @param
- *   array $db_spec an array holding the db_spec specifing the database to load
- * @return
- *   int 1 on succes 0 on failure
- */
-function sitespinner_load_db_file($site, $db_spec) {
-  // get dump dir    
-  $dump_dir = dirname(__FILE__) . "/sql";
-  $res = sitespinner_list_sql_dumps(TRUE);
-  if (!$res) {
-    sitespinner_print(dt("Continue with clean install. No dumps were found in.  ") . $dump_dir . "\n");
-    return 1;
-    /*
-    sitespinner_print(dt("You can choose to download some default dumps found at:" . "\n"));
-    $dl_dumps = strtoupper(sitespinner_readline("Download and install default dumps (236 KB) for all versions of drupal [Y/n]? "));
-    if ($dl_dumps == 'Y' || empty($dl_dumps)){      
-      $dl = sitespinner_download_dumps();
-    }*/
-  }
-
-  $res = sitespinner_list_sql_dumps(TRUE);
-  if (!$res) {
-    return 0;
-  }
-
-  sitespinner_print(dt("You can populate your database with the following sql dumps:") . "\n");
-  sitespinner_list_sql_dumps();
-
-  // dumps are found we prompt user to load a dump
-  $sql_file = sitespinner_readline(dt("Enter exact name of sql file to use: "));
-
-  if (empty($sql_file)) {
-    // if the user entered a dump that did not exist, we start over again
-    sitespinner_print(dt("You need to enter a file name.") . "\n");
-    return 0;
-  }
-  $sql_file = $dump_dir . "/" . $sql_file;
-  if (!file_exists($sql_file)) {
-    // if the user entered a dump that did not exist, we start over again
-    sitespinner_print(dt("File does not exist or is not readable. Try again. ") . "\n");
-    return 0;
-  }
-  // got so far. time to load the dump into the database
-  $res = sitespinner_load_dump($db_spec, $sql_file);
-  if (!$res) {
-    sitespinner_print(dt("Could not load dump. ") . $sql_file . dt(" We try again") . "\n");
-    return 0;
-  }
-  else {
-    return 1;
-  }
-}
-
-// }}}
-// {{{ sitespinner_load_db_site($site, $db_spec)
-/**
- * function for populating database with site method
- *
- * @param
- *   string   $site the drupal website to enable
- * @param
- *   array    $db_spec an array holding the db_spec specifing the database to load
- * @return
- *   int      1 on succes 0 on failure
- */
-function sitespinner_load_db_site($site, $db_spec) {
-
-  sitespinner_print(dt("Listing all sites except: ") . "$site\n");
-  sitespinner_list_all_sites($site);
-  $readline_str = dt("Enter exact site name to load dump from:") . "\n";
-  $load_site = sitespinner_readline($readline_str);
-
-  if (empty($load_site)) {
-    sitespinner_print(dt("You need to enter a site.") . "\n");
-    return 0;
-  }
-
-  if ($load_site == $site) {
-    sitespinner_print(dt("Can not load anything from the created database for the site we are enabling.") . "\n");
-    return 0;
-  }
-  if (!sitespinner_site_exists($load_site, '')) {
-    sitespinner_print(dt("The site to load from does not exist.") . "\n");
-    return 0;
-  }
-
-  if (sitespinner_sub_exists($load_site)) {
-    $settings = sitespinner_get_filenames($load_site);
-  }
-  else {
-    $settings = sitespinnersa_get_filenames($load_site);
-  }
-
-  $driver_spec = 0;
-  $save_spec = _drush_sql_get_spec_from_settings($settings['settings_file'], 'source');
-
-  // check and see if we load and save from same database type
-  if ($save_spec['driver'] != $db_spec['driver']) {
-    $driver_spec = 0;
-  }
-  else {
-    $driver_spec = 1;
-  }
-  if ($save_spec['driver'] == 'mysql' && $db_spec['driver'] == 'mysqli') {
-    $driver_spec = 1;
-  }
-  if ($save_spec['driver'] == 'mysqli' && $db_spec['driver'] == 'mysql') {
-    $driver_spec = 1;
-  }
-
-  if ($driver_spec) {
-    sitespinner_save_dump($save_spec, './dump_file');
-    $res = sitespinner_load_dump($db_spec, './dump_file');
-    sitespinner_exec("rm ./dump_file");
-    return 1;
-  }
-  else {
-    sitespinner_print(dt("The database source and target have to be same type.") . "\n");
-    return 0;
-  }
-  return 0;
-}
-
-// }}}
-// {{{ sitespinner_list_sql_dumps()
-/**
- * function for listing all sql dumps
- * @param bool is this is true no printing will be done
- * @param int major_version. If this is set only list the specified version
- * @return int $num_dumps, the count of sql dumps in the folder
- */
-function sitespinner_list_sql_dumps($silent = FALSE, $major_version = '') {
-  $sql_dir = dirname(__FILE__) . "/sql";
-  $sql_dumps = scandir($sql_dir);
-  $num_dumps = 0;
-  for ($i = 0; $i < count($sql_dumps); ++$i) {
-    if (!is_file($sql_dir . "/" . $sql_dumps[$i])) {
-      // skip
-    }
-    else {
-      $num_dumps++;
-      if (!$silent) {
-        sitespinner_print($sql_dumps[$i] . " ");
-      }
-    }
-  }
-  if (!$silent) {
-    sitespinner_print("\n");
-  }
-  return $num_dumps;
-}
-
-// }}}
-// cron function
-// {{{ sitespinner_create_cron_line($site)
-
-/**
- * function for showing a readline form where we can collect
- * information about how crons should be done
- *
- * @param string $site
- * @return array $cron with info about the cron
- */
-function sitespinner_create_cron_line($site) {
-  $readline_str = dt("Shall cron run once every [h]our or once every [d]ay or once every month[m]: [h]/[d]/[m]? ");
-  $cron = array();
-  $h_or_d = sitespinner_readline($readline_str);
-  if ($h_or_d != 'h' AND $h_or_d != 'd' AND $h_or_d != 'm') {
-    return 0;
-  }
-
-  $readline_str = dt("Enter minute when your cron shall run. Must be between 0 and 59: ");
-  $cron = array();
-  $minute = (int) sitespinner_readline($readline_str);
-  if ($minute >= 0 && $minute <= 59) {
-    $cron['minute'] = $minute;
-  }
-  else {
-    return 0;
-  }
-
-  if ($h_or_d == 'h') {
-    return $cron;
-  }
-
-  $readline_str = dt("Enter hour when your cron shall run. Must be between 0 and 23: ");
-  $hour = (int) sitespinner_readline($readline_str);
-  if ($hour >= 0 && $hour <= 23) {
-    $cron['hour'] = $hour;
-  }
-  else {
-    return 0;
-  }
-
-  if ($h_or_d == 'd') {
-    return $cron;
-  }
-
-  $readline_str = dt("Enter day in month when your cron shall run. Must be between 1 and 31: ");
-  $day = (int) sitespinner_readline($readline_str);
-  if ($day >= 1 && $day <= 31) {
-    $cron['day'] = $day;
-  }
-  else {
-    return 0;
-  }
-
-  if ($h_or_d == 'm') {
-    return $cron;
-  }
-
-  return 0;
-}
-
-// }}} 
-// {{{ sitespinner_disable_cron($site)
-
-/**
- * function for deleting entries from the crontab file
- *
- * @param string $site
- * @return int 1
- */
-function sitespinner_disable_cron($site) {
-
-  $cron_line = "http://" . $site . "/cron.php";
-  $output = $cron_str = '';
-
-  // get contents of crontab. We use exec because we need the output
-  // do the crontab -l command to get old crontabs
-  exec("crontab -l", $output, $res);
-  foreach ($output as $line) {
-    if (!preg_match("[$cron_line]", $line)) {
-      $cron_str .= $line . "\n";
-    }
-  }
-
-  $cron_str = rtrim($cron_str);
-  $command = 'echo "' . $cron_str . '" | crontab -';
-  sitespinner_exec($command);
-  return 1;
-}
-
-// }}}
-// {{{ sitespinner_enable_cron($site)
-/**
- * function for enabling the site in the crontab
- *
- * @param string $site
- * @return int 0 on failure 1 on success
- */
-function sitespinner_enable_cron($site) {
-  $readline_str = dt("Do you want to enable cron job for the site [Y/n]? ");
-  $y_or_n = strtoupper(sitespinner_readline($readline_str));
-  if ($y_or_n == 'Y' || empty($y_or_n)) {
-    // continue
-  }
-  else {
-    return 0;
-  }
-
-  $cron = sitespinner_create_cron_line($site);
-  if (!$cron) {
-    sitespinner_print("Could not enable cron");
-    return 0;
-  }
-  else {
-    // minute always set in this scenario
-    $cron_line = $cron['minute'] . " ";
-    // but not the day
-    if (isset($cron['hour'])) {
-      $cron_line .= $cron['hour'] . " ";
-    }
-    else {
-      $cron_line .= "* ";
-    }
-    // and not the month
-    if (isset($cron['day'])) {
-      $cron_line .= $cron['day'] . " ";
-    }
-    else {
-      $cron_line .= "* ";
-    }
-    // add the remains
-    $cron_line .= "* *  ";
-  }
-
-  $cron_line .= SITESPINNER_CRON_COMMAND . " " . "http://" . $site . "/cron.php";
-
-  // get contents of crontab. We use exec because we need the output
-  // do the crontab -l command to get old crontabs
-  exec("crontab -l", $output, $res);
-  $output = sitespinner_print($output, 1);
-  $output .= $cron_line;
-  $command = 'echo "' . $output . '" | crontab -';
-  sitespinner_exec($command);
-
-  return 1;
 }
 
 // }}}
@@ -2043,33 +1244,6 @@ function sitespinner_readline($line) {
   }
 }
 
-// }}}
-// {{{ sitespinner_test()
-
-/**
- * function for testing
- */
-function sitespinner_test($site) {
-  /*
-  $db_spec = array();
-  $db_spec = drush_get_context('DRUSH_DB_CREDENTIALS');
-  print_r($db_spec);
-  $db_spec = sitespinner_get_db_spec();  
-  print_r($db_spec);
-   */
-  sitespinner_download_dumps();
-}
-
-#$drupal_root = drush_get_context('DRUSH_DRUPAL_ROOT');
-/*
-//$settings = sitespinner_get_filenames($site);
-//print_r($settings);
-require_once $drupal_root . "/includes/common.inc";
-require_once $drupal_root . "/modules/system/system.install";
-//print $drupal_root;
-require_once $drupal_root . "/includes/install.inc";
-drupal_uninstall_schema();
- */
 // }}}
 
 function sitespinner_update_etc_hosts($hostname) {

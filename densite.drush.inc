@@ -348,7 +348,7 @@ function densite_densite($site) {
     return 1;
   }
   densite_create_site($site, $db_spec);
-  densite_create_virtualhost($site);
+//  densite_create_virtualhost($site);
   
   // densite_load_db
   // keep trying to load the database until user rejects with a no,

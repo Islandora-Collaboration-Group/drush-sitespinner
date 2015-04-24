@@ -1,4 +1,5 @@
 apache2/apache2.conf
 densite.conf
+sitespinner.conf
 nbproject/*
 cookie.txt

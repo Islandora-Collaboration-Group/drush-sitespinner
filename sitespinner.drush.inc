@@ -34,13 +34,13 @@ function sitespinner_init() {
   $sitespinner_conf = dirname(__FILE__) . "/sitespinner.conf";
   $sitespinner_conf_dist = dirname(__FILE__) . "/dist-sitespinner.conf";
 
-  $sitespinner_apache2_dir = dirname(__FILE__);
-  $sitespinner_apache2_conf = dirname(__FILE__) . "/apache2/apache2.conf";
-  $sitespinner_apache2_conf_dist = dirname(__FILE__) . "/apache2/dist-apache2.conf";
+//  $sitespinner_apache2_dir = dirname(__FILE__);
+//  $sitespinner_apache2_conf = dirname(__FILE__) . "/apache2/apache2.conf";
+//  $sitespinner_apache2_conf_dist = dirname(__FILE__) . "/apache2/dist-apache2.conf";
 
   $sitespinner_sql_dir = dirname(__FILE__) . "/sql";
 
-  if (file_exists($sitespinner_conf) && file_exists($sitespinner_apache2_conf) && file_exists($sitespinner_sql_dir)) {
+  if (file_exists($sitespinner_conf) /*&& file_exists($sitespinner_apache2_conf)*/ && file_exists($sitespinner_sql_dir)) {
     return 1;
   }
 
@@ -59,20 +59,20 @@ function sitespinner_init() {
     }
   }
 
-  if (!file_exists($sitespinner_apache2_conf)) {
-    $output = dt("Apache2 configuration file not found: ") . $sitespinner_apache2_conf . "\n";
-    sitespinner_print($output);
-    $readline_str = dt("Do you want to create: ") . $sitespinner_apache2_conf;
-    $readline_str .= dt(" from ") . $sitespinner_apache2_conf_dist . dt(" [Y/n]?");
-    $create_apache2_conf = strtoupper(sitespinner_readline($readline_str));
-    if ($create_apache2_conf == 'Y' || empty($create_apache2_conf)) {
-      sitespinner_exec("cp " . $sitespinner_apache2_conf_dist . " " . $sitespinner_apache2_conf);
-    }
-    else {
-      sitespinner_print(dt("We can not proceed without a default apache file. Exit" . "\n"));
-      return 0;
-    }
-  }
+//  if (!file_exists($sitespinner_apache2_conf)) {
+//    $output = dt("Apache2 configuration file not found: ") . $sitespinner_apache2_conf . "\n";
+//    sitespinner_print($output);
+//    $readline_str = dt("Do you want to create: ") . $sitespinner_apache2_conf;
+//    $readline_str .= dt(" from ") . $sitespinner_apache2_conf_dist . dt(" [Y/n]?");
+//    $create_apache2_conf = strtoupper(sitespinner_readline($readline_str));
+//    if ($create_apache2_conf == 'Y' || empty($create_apache2_conf)) {
+//      sitespinner_exec("cp " . $sitespinner_apache2_conf_dist . " " . $sitespinner_apache2_conf);
+//    }
+//    else {
+//      sitespinner_print(dt("We can not proceed without a default apache file. Exit" . "\n"));
+//      return 0;
+//    }
+//  }
 
   if (!file_exists($sitespinner_sql_dir)) {
     $output = dt("Sql dir not found: ") . $sitespinner_sql_dir . "\n";
@@ -89,7 +89,7 @@ function sitespinner_init() {
   }
   sitespinner_print(dt("Look at the two configuration files created and change them as you like:") . "\n");
   sitespinner_print($sitespinner_conf . "\n");
-  sitespinner_print($sitespinner_apache2_conf . "\n");
+//  sitespinner_print($sitespinner_apache2_conf . "\n");
   return 1;
 }
 
@@ -328,6 +328,10 @@ function sitespinner_sitespinner($site) {
 
   $root_config = drush_get_option('root-config');
   $site_config = drush_get_option('site-config');
+  $source_alias = drush_get_option('source-alias');
+  $domain = drush_get_option('domain');
+
+  $context_status = _core_site_status_table();
 
 
   // Make sure we are running inside a installed version of drupal.
@@ -338,6 +342,27 @@ function sitespinner_sitespinner($site) {
   if (empty($site)) {
     sitespinner_print(dt("You need to specify a site to create. "));
     $site = sitespinner_readline(dt("Enter sub-site name and hit return: "));
+  }
+
+  if (empty($domain) || !(in_array($domain, array('path', 'domain', 'subdomain')))) {
+    sitespinner_print(dt("Please indicate the domain type to use for this site by entering a number from the following list\n"));
+    $reply = 'none yet';
+    while (!in_array($reply, array(1, 2, 3))) {
+      if ($reply != 'none yet') {
+        sitespinner_print(dt("\n\":reply\" was not a valid choice. Please indicate the domain type to use for this site by entering a number from the following list\n", array(':reply' => $reply)));
+      }
+      sitespinner_print(dt("[1] = \"path\" (default): the new site will be found at !domain/yoursitename\n", array('!domain' => 'your.domain')));
+      sitespinner_print(dt("[2] = \"domain\": the new site will be found at yoursitename\n"));
+      sitespinner_print(dt("[3] = \"subdomain\": the new site will be found at yoursitename.!domain\n", array('!domain' => 'your.domain')));
+      $reply = sitespinner_readline(dt("Enter sub-site name and hit return: "));
+      if ($reply == '') {
+        $reply = 1;
+      }
+    }
+    $choices = array(1 => 'path', 2 => 'domain', 3 => 'subdomain');
+    $domain = $choices[$reply];
+    sitespinner_print(dt("\"@domain\" was chosen for the domain setting.\n", array('@domain' => $domain)));
+
   }
 
   if (empty($root_config)) {
@@ -405,23 +430,57 @@ function sitespinner_sitespinner($site) {
     return 1;
   }
   sitespinner_print("\n");
-  $db_spec = sitespinner_enable_db($site);
-  if (!$db_spec) {
+//  print_r(get_defined_vars());
+
+  $destination_db_spec = sitespinner_enable_db($site);
+  if (!$destination_db_spec) {
     sitespinner_print(dt("Could not make database. Exit\n"));
     return 1;
   }
-  sitespinner_create_site($site, $db_spec);
-  sitespinner_create_virtualhost($site);
+  sitespinner_create_site($site, $destination_db_spec);
+//  sitespinner_create_virtualhost($site);
 
-  // sitespinner_load_db
-  // keep trying to load the database until user rejects with a no,
-  // or when user has loaded a database
-  while (!$db_res = sitespinner_load_db($site, $db_spec)) {
+  // Copy database and files from source.
+  if ($source_alias) {
+    sitespinner_sql_sync_from_alias($source_alias, $site);
+    sitespinner_copy_files_from_source($source_alias, $site);
+  }
+  else {
+    // Copy database and files from the current context.
+    $source_db_spec = _drush_sql_get_db_spec();
+    print_r($source_db_spec);
+    if ($source_db_spec['driver'] == $destination_db_spec['driver'] && $destination_db_spec['driver'] == 'mysql') {
+      $copy_db_command = sitespinner_create_mysql_copy_command($source_db_spec, $destination_db_spec);
+      sitespinner_exec($copy_db_command);
+    }
+    else {
+      sitespinner_print(dt('Unable to copy database. Source and destination must both use mysql driver. Exit'));
+      return 1;
+    }
+    sitespinner_copy_files_from_source($context_status['root'] . '/' . $context_status['files'], $site);
   }
 
+  // Handle domain setting
+  switch($domain) {
+    case 'domain':
+      break;
+    case 'subdomain':
+      break;
+    default:
+      // create a symlink with the name $site in the /sites/ directory
+      sitespinner_exec(dt('sudo ln -s . @root/@site ', array('@root' => $drupal_root, '@site' => $site)));
+      break;
+  }
+
+//  // sitespinner_load_db
+//  // keep trying to load the database until user rejects with a no,
+//  // or when user has loaded a database
+//  while (!$db_res = sitespinner_load_db($site, $destination_db_spec)) {
+//  }
+
   // check to see if user wants a default cron line
-  sitespinner_enable_cron($site);
-  sitespinner_print_status($site, $db_res);
+//  sitespinner_enable_cron($site);
+//  sitespinner_print_status($site, $db_res);
   return 0;
 }
 
@@ -604,18 +663,21 @@ function sitespinner_create_site($site, $db_spec) {
   // search and replace $db_url and write new settings file
   $settings_string = sitespinner_get_file($settings['settings_file']);
 
-  $search = "\$db_url = 'mysql://username:password@localhost/databasename'";
-  $replace = "\$db_url = " . "'$db_spec[driver]://$db_spec[username]:$db_spec[password]@$db_spec[host]/$db_spec[database]'";
+  $search = "\n\$databases = array();\n";
+  $replace = "\n\$databases = array (\n  'default' =>\n    array (\n      'default' => " . var_export($db_spec, TRUE) . ")\n);\n";
+//  $replace = "\$db_url = " . "'$db_spec[driver]://$db_spec[username]:$db_spec[password]@$db_spec[host]/$db_spec[database]'";
   $settings_string = str_replace($search, $replace, $settings_string);
+  print_r($replace);
+  print_r($settings_string);
 
   sitespinner_write_settings($settings['settings_file'], $settings_string);
 
   // secure settings for files and settings
   sitespinner_exec("sudo mkdir " . $settings['files_dir']);
-  sitespinner_exec("sudo chmod " . sitespinner_FOLDER_PERMS . " " . $settings['files_dir']);
-  sitespinner_exec("sudo chown " . sitespinner_DEFAULT_USER . ":" . sitespinner_DEFAULT_GROUP . " " . $settings['files_dir']);
-  sitespinner_exec("sudo chmod " . sitespinner_SETTINGS_PERMS . " " . $settings['settings_file']);
-  sitespinner_exec("sudo chown " . sitespinner_DEFAULT_USER . ":" . sitespinner_DEFAULT_GROUP . " " . $settings['settings_file']);
+  sitespinner_exec("sudo chmod " . SITESPINNER_FOLDER_PERMS . " " . $settings['files_dir']);
+  sitespinner_exec("sudo chown " . SITESPINNER_DEFAULT_USER . ":" . SITESPINNER_DEFAULT_GROUP . " " . $settings['files_dir']);
+  sitespinner_exec("sudo chmod " . SITESPINNER_SETTINGS_PERMS . " " . $settings['settings_file']);
+  sitespinner_exec("sudo chown " . SITESPINNER_DEFAULT_USER . ":" . SITESPINNER_DEFAULT_GROUP . " " . $settings['settings_file']);
 }
 
 // }}}
@@ -648,7 +710,7 @@ function sitespinner_create_db($db_spec) {
       if (!empty($db_spec['port'])) {
         $command .= "-p " . $db_spec['port'] . " ";
       }
-      $command .= "-E " . sitespinner_SQL_ENCODING . " " . $db_spec['database'];
+      $command .= "-E " . SITESPINNER_SQL_ENCODING . " " . $db_spec['database'];
       sitespinner_exec($command);
     }
     else {
@@ -719,6 +781,57 @@ function sitespinner_get_db_spec() {
 }
 
 // }}}
+// {{{ sitespinner_sync_source_db($source_alias)
+
+function sitespinner_sql_sync_from_alias($source_alias, $site) {
+  if (!empty($source_alias)) {
+    // TODO set destination site as the context.
+    $settings = sitespinner_get_filenames($site);
+    sitespinner_exec("cd " . $settings['settings_dir']);
+    drush_include(DRUSH_BASE_PATH . '/commands/sql', 'sync.sql');
+    drush_sql_sync($source_alias, 'self');
+  }
+}
+
+/**
+ * Entrypoint for drush rsync.
+ *
+ * @param source
+ *   A site alias ("@dev") or site specification ("/path/to/drupal#mysite.com")
+ *   followed by an optional path (":path/to/sync"), or any path
+ *   that could be passed to rsync ("user@server.com:/path/to/dir/").
+ * @param site
+ *   The site name being created.
+ */
+function sitespinner_copy_files_from_source($source, $site) {
+
+  $dest_settings = sitespinner_get_filenames($site);
+  sitespinner_print("Copying files directory: \n");
+
+  if (strpos($source, '@') !== 0) {
+    //
+    $source .= '/';
+    $exec = "rsync --exclude=*/settings.php " . $source . " " .  $dest_settings['files_dir'];
+    sitespinner_exec($exec);
+  }
+  else {
+    $source .= ':%files';
+    drush_invoke_process($source, 'rsync', $commandline_args = array($source, $dest_settings['files_dir']), $commandline_options = array('yes' => TRUE, 'exclude' => '*/settings.php'), $backend_options = TRUE);
+
+  }
+
+  sitespinner_print("Fixing file ownership and permissions\n");
+  sitespinner_exec("sudo chown -R " . SITESPINNER_DEFAULT_USER . ":" . SITESPINNER_DEFAULT_GROUP . " " . $dest_settings['files_dir']);
+  $chmod_command = t("for x in @files; do
+      find \${x} -type d -exec chmod ug=rwx,o= '{}' \\;
+      find \${x} -type f -exec chmod ug=rw,o= '{}' \\;
+    done",
+    array('@files' => $dest_settings['files_dir']));
+  sitespinner_print($chmod_command);
+  sitespinner_exec($chmod_command);
+}
+
+// }}}
 // {{{ sitespinner_enable_db($site)
 
 /**
@@ -738,7 +851,7 @@ function sitespinner_get_db_spec() {
 function sitespinner_enable_db($site, $install = 0) {
   $db_spec = array();
   $db_spec = sitespinner_get_db_spec();
-  $db_name = ereg_replace("[\.-]", "", $site);
+  $db_name = preg_replace("[\.-]", "", $site);
 
   if ($install) {
     // if it's an install only use manual procedure
@@ -818,7 +931,7 @@ function sitespinner_enable_db($site, $install = 0) {
 function sitespinner_enable_db_manual() {
   $settings = array();
   sitespinner_print(dt("Manual install of the database. ") . "\n");
-  if (!$db_spec['driver'] = sitespinner_DB_DRIVER) {
+  if (!$db_spec['driver'] = SITESPINNER_DB_DRIVER) {
     sitespinner_print(dt("You PHP cli version reports you have support for these drivers: "));
     if (extension_loaded('mysql')) {
       sitespinner_print(dt('mysql '));
@@ -835,19 +948,19 @@ function sitespinner_enable_db_manual() {
   else {
     sitespinner_print("Driver from settings from sitespinner.conf: " . $db_spec['driver'] . "\n");
   }
-  if (!$db_spec['host'] = sitespinner_DB_HOST) {
+  if (!$db_spec['host'] = SITESPINNER_DB_HOST) {
     $db_spec['host'] = sitespinner_readLine(dt("Hostname:       "));
   }
   else {
     sitespinner_print("Host from sitespinner.conf: " . $db_spec['host'] . "\n");
   }
-  if (!$db_spec['username'] = sitespinner_DB_USERNAME) {
+  if (!$db_spec['username'] = SITESPINNER_DB_USERNAME) {
     $db_spec['username'] = sitespinner_readLine(dt("Username:       "));
   }
   else {
     sitespinner_print("Usernames from sitespinner.conf: " . $db_spec['username'] . "\n");
   }
-  if (!$db_spec['password'] = sitespinner_DB_PASSWORD) {
+  if (!$db_spec['password'] = SITESPINNER_DB_PASSWORD) {
     $db_spec['password'] = sitespinner_readLine(dt("Password:       "));
   }
   else {
@@ -1039,7 +1152,7 @@ function sitespinner_load_db($site, $db_spec, $install = 0) {
           return 0;
         }
         else {
-          if (sitespinner_DEBUG) {
+          if (SITESPINNER_DEBUG) {
             print "Returning 2\n";
           }
           return 2;
@@ -1060,7 +1173,7 @@ function sitespinner_load_db($site, $db_spec, $install = 0) {
 
       default:
         // wrong option start over
-        if (sitespinner_DEBUG) {
+        if (SITESPINNER_DEBUG) {
           print "else Returning 0\n";
         }
         return 0;
@@ -1198,7 +1311,7 @@ function sitespinner_load_db_site($site, $db_spec) {
     sitespinner_print(dt("Can not load anything from the created database for the site we are enabling.") . "\n");
     return 0;
   }
-  if (!sitespinner_site_exists($load_site)) {
+  if (!sitespinner_site_exists($load_site, '')) {
     sitespinner_print(dt("The site to load from does not exist.") . "\n");
     return 0;
   }
@@ -1404,7 +1517,7 @@ function sitespinner_enable_cron($site) {
     $cron_line .= "* *  ";
   }
 
-  $cron_line .= sitespinner_CRON_COMMAND . " " . "http://" . $site . "/cron.php";
+  $cron_line .= SITESPINNER_CRON_COMMAND . " " . "http://" . $site . "/cron.php";
 
   // get contents of crontab. We use exec because we need the output
   // do the crontab -l command to get old crontabs
@@ -1443,7 +1556,7 @@ function sitespinner_get_settings_filename($site) {
  *    string $base the base_path of all sites
  */
 function sitespinner_get_sites_root($path) {
-  $str = sitespinner_WWW_HOME;
+  $str = SITESPINNER_WWW_HOME;
   if (!empty($str)) {
     return $str;
   }
@@ -1479,7 +1592,7 @@ function sitespinner_get_filenames($site) {
   // find the default apache2.conf file
   $path = explode('/', __FILE__);
   array_pop($path);
-  $apache_default_conf = implode('/', $path) . "/apache2/" . sitespinner_APACHE_FILE;
+  $apache_default_conf = implode('/', $path) . "/apache2/" . SITESPINNER_APACHE_FILE;
 
   $major_version = substr(drush_drupal_version(), 0, 1);
   $settings_file_default = implode('/', $path) . "/settings/default.settings.php-" . $major_version . ".x";
@@ -1493,12 +1606,12 @@ function sitespinner_get_filenames($site) {
     'files_dir' => $drupal_root . '/sites/' . $site . '/files',
     'www_base' => $www_base,
     'www_base_site' => $www_base . "/" . $site,
-    'www_base_htdocs' => $www_base . "/" . $site . "/" . sitespinner_APACHE_HTDOCS,
-    'www_base_site_logs' => $www_base . "/" . $site . "/" . sitespinner_APACHE_LOGS,
-    'www_base_site_access' => $www_base . "/" . $site . "/" . sitespinner_APACHE_LOGS . "/access.log",
-    'www_base_site_error' => $www_base . "/" . $site . "/" . sitespinner_APACHE_LOGS . "/error.log",
+    'www_base_htdocs' => $www_base . "/" . $site . "/" . SITESPINNER_APACHE_HTDOCS,
+    'www_base_site_logs' => $www_base . "/" . $site . "/" . SITESPINNER_APACHE_LOGS,
+    'www_base_site_access' => $www_base . "/" . $site . "/" . SITESPINNER_APACHE_LOGS . "/access.log",
+    'www_base_site_error' => $www_base . "/" . $site . "/" . SITESPINNER_APACHE_LOGS . "/error.log",
     'apache_default_conf' => $apache_default_conf,
-    'apache_sites_avail' => sitespinner_APACHE_SITES_AVAIL . "/" . $site,
+    'apache_sites_avail' => SITESPINNER_APACHE_SITES_AVAIL . "/" . $site,
   );
   return $filenames;
 }
@@ -1602,7 +1715,7 @@ function sitespinner_get_all_sites($exclude = '') {
 
   $sites_dir = scandir($drupal_sites_path);
   for ($i = 0; $i < count($sites_dir); ++$i) {
-    $settings_file = $drupal_sites_path . "/" . $sites_dir[$i] . "/" . sitespinner_APACHE_HTDOCS . "/sites/default/settings.php";
+    $settings_file = $drupal_sites_path . "/" . $sites_dir[$i] . "/" . SITESPINNER_APACHE_HTDOCS . "/sites/default/settings.php";
 
     if ($sites_dir[$i] == '.') {
       // skip current dir
@@ -1805,7 +1918,7 @@ function sitespinner_get_sub_sites($base = '', $exclude = '') {
   }
   else {
     $sites_root = sitespinner_get_sites_root($drupal_root);
-    $drupal_sites_path = $sites_root . "/" . $base . "/" . sitespinner_APACHE_HTDOCS . "/sites";
+    $drupal_sites_path = $sites_root . "/" . $base . "/" . SITESPINNER_APACHE_HTDOCS . "/sites";
   }
 
   $sites_dir = scandir($drupal_sites_path);
@@ -1910,7 +2023,7 @@ function sitespinner_write_file($filename, $contents) {
  * @return string the input which readline reads
  */
 function sitespinner_readline($line) {
-  if (function_exists(readline)) {
+  if (function_exists('readline')) {
     $ret = readline($line);
     return $ret;
   }
@@ -1970,4 +2083,21 @@ function sitespinner_update_etc_hosts($hostname) {
     sitespinner_exec("sudo /etc/init.d/apache2 reload");
     sitespinner_exec("rm /tmp/hosts");
   }
+}
+
+function sitespinner_create_mysql_copy_command($source_db_spec, $dest_db_spec) {
+  $command = dt('mysqldump -h @source_host -u @source_user -p@source_pass @source_port @source_db_name | mysql -h @destination_host -u @destination_user -p@destination_pass @destination_port @destination_db_name', array(
+    '@source_host' => $source_db_spec['host'],
+    '@source_user' => $source_db_spec['username'],
+    '@source_pass' => $source_db_spec['password'],
+    '@source_port' => !empty($source_db_spec['port']) ? '-P ' . $source_db_spec['port'] : '',
+    '@source_db_name' => $source_db_spec['database'],
+    '@destination_host' => $dest_db_spec['host'],
+    '@destination_user' => $dest_db_spec['username'],
+    '@destination_pass' => $dest_db_spec['password'],
+    '@destination_port' => !empty($dest_db_spec['port']) ? '-P ' . $dest_db_spec['port'] : '',
+    '@destination_db_name' => $dest_db_spec['database'],
+  ));
+
+  return $command;
 }

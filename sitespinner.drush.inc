@@ -29,7 +29,7 @@ function sitespinner_drush_command() {
   // The key in the $items array is the name of the command.
   $items['sitespinner'] = array(
     'description' => dt('create a drupal multi-site install. Will create the specified multi-site in the base /sites folder. E.g. yourmultisite will be placed in sites/www.base-site.net.yourmultisite'),
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
     // The name of the function implementing your command.
     'callback' => 'sitespinner_sitespinner',
     // A short description of your command.

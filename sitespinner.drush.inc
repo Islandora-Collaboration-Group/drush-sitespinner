@@ -9,6 +9,38 @@
  * functions that are used internally will do the opposite.
  */
 
+/**
+ * the default user of all the web sites
+ * this will be the owner of the settings.php file created by the sitespinner script
+ * We set this to the user who is running the drush command
+ */
+
+define ('SITESPINNER_DEFAULT_USER', getenv('USER'));
+
+/**
+ * this will be the group of the settings.php file created by the sitespinner script.
+ * On my system the default apache user is www-data (ubuntu). If we set the files
+ * directory to be owned by this group we insure that only apache can read and
+ * write the files. Also if we set the group of the settings file to this group,
+ * we insure that the server can read the settings file
+ */
+define ('SITESPINNER_DEFAULT_GROUP', '_www');
+
+/**
+ * Permissions for the settings.php file
+ * if we set the settings.php file to 740 we insure that only the SITESPINNER_DEFAULT_USER
+ * and SITESPINNER_DEFAULT_GROUP can read the settings.php file. User get full rights.
+ */
+define ('SITESPINNER_SETTINGS_PERMS', '740');
+
+/**
+ * Permissions for the files/ folder
+ * if we set the files/ folder to 770 we insure that only the SITESPINNER_DEFAULT_USER
+ * and SITESPINNER_DEFAULT_GROUP can read and write to this folder
+ */
+define ('SITESPINNER_FILES_DIR_PERMS', '770');
+
+
 // {{{ sitespinner_drush_command()
 
 /**

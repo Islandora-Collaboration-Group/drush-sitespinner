@@ -10,15 +10,16 @@
  */
 
 /**
- * the default user of all the web sites
- * this will be the owner of the settings.php file created by the sitespinner script
- * We set this to the user who is running the drush command
+ * The default user of all the web sites
+ * This will be the owner of the settings.php file created by the sitespinner
+ * command.
+ * We set this to the user who is running the drush command.
  */
-
 define ('SITESPINNER_DEFAULT_USER', getenv('USER'));
 
 /**
- * this will be the group of the settings.php file created by the sitespinner script.
+ * This will be the group of the settings.php file created by the sitespinner
+ * command.
  * On my system the default apache user is www-data (ubuntu). If we set the files
  * directory to be owned by this group we insure that only apache can read and
  * write the files. Also if we set the group of the settings file to this group,
@@ -27,16 +28,18 @@ define ('SITESPINNER_DEFAULT_USER', getenv('USER'));
 define ('SITESPINNER_DEFAULT_GROUP', '_www');
 
 /**
- * Permissions for the settings.php file
- * if we set the settings.php file to 740 we insure that only the SITESPINNER_DEFAULT_USER
- * and SITESPINNER_DEFAULT_GROUP can read the settings.php file. User get full rights.
+ * Permissions for the settings.php file.
+ * if we set the settings.php file to 740 we insure that only the
+ * SITESPINNER_DEFAULT_USER and SITESPINNER_DEFAULT_GROUP can read the
+ * settings.php file. User get full rights.
  */
 define ('SITESPINNER_SETTINGS_PERMS', '740');
 
 /**
  * Permissions for the files/ folder
- * if we set the files/ folder to 770 we insure that only the SITESPINNER_DEFAULT_USER
- * and SITESPINNER_DEFAULT_GROUP can read and write to this folder
+ * if we set the files/ folder to 770 we insure that only the
+ * SITESPINNER_DEFAULT_USER and SITESPINNER_DEFAULT_GROUP can read and write
+ * to this folder
  */
 define ('SITESPINNER_FILES_DIR_PERMS', '770');
 
@@ -44,12 +47,7 @@ define ('SITESPINNER_FILES_DIR_PERMS', '770');
 // {{{ sitespinner_drush_command()
 
 /**
- * Implementation of hook_drush_command().
- *
- * @See drush_parse_command() for a list of recognized keys.
- *
- * @return array
- *   An associative array describing your command(s).
+ * Implements hook_drush_command().
  */
 function sitespinner_drush_command() {
   $items = array();
@@ -79,16 +77,7 @@ function sitespinner_drush_command() {
 // {{{ sitespinner_drush_help()
 
 /**
- * Implementation of hook_drush_help().
- *
- * This function is called whenever a drush user calls
- * 'drush help <name-of-your-command>'
- *
- * @param
- *   A string with the help section (prepend with 'drush:')
- *
- * @return
- *   A string with the help text for your command.
+ * Implements hook_drush_help().
  */
 function sitespinner_drush_help($section) {
   switch ($section) {
@@ -149,13 +138,6 @@ function sitespinner_sitespinner($base, $destination) {
     sitespinner_print(dt("\"@domain\" was chosen for the domain setting.\n", array('@domain' => $domain)));
   }
 
-  // sudo :         sudo to ensure that we can log in as su
-  // database:      enable a database or use existing
-  // drupal:        create files for site/ and site/files
-  // apache:        create apache log files and configuration and restart apache2
-  // load database: ask to populate the database
-  // cron:          enable cron job
-
   $res = sitespinner_exec("sudo echo -e " . dt("Started enabling a sub-site"));
   if ($res) {
     sitespinner_print(dt("Could not sudo. Exit"));
@@ -176,19 +158,22 @@ function sitespinner_sitespinner($base, $destination) {
   sitespinner_rsync_files($base, $destination);
 
   // Handle domain setting.
-  switch($domain) {
+  switch ($domain) {
     case 'domain':
       // TODO vhost stuff.
-      //  sitespinner_create_virtualhost($site);
-    break;
+      // sitespinner_create_virtualhost($site);
+      break;
+
     case 'subdomain':
       // TODO vhost stuff.
-      //  sitespinner_create_virtualhost($site);
+      // sitespinner_create_virtualhost($site);
       break;
+
     default:
-      // Create a to-self symlink using multisite name in the drupal root
+      // Create a to-self symlink using multisite name in the drupal root.
       sitespinner_exec(dt('sudo ln -s . @uri ', array('@uri' => $drupal_root . "/" . $site)));
       break;
+
   }
 
 
@@ -370,15 +355,10 @@ function sitespinner_create_virtualhost($site, $standalone = FALSE) {
 // {{{ sitespinner_create_site($site, $db_spec)
 
 /**
- * function for creating new drupal site folder in e.g.:
- * sites/example.org
+ * Function for creating new drupal multi-site folder, settings file and files directory.
  *
- * @param
- *   string $site the drupal website to enable
- * @param
- *   array $db_spec an array holding the db_spec for rewriting the $db_url in settings.php
- * @return
- *   void all error handling is being done in sitespinner_exec
+ * @param string $destination_site_alias_record
+ *   the alias of the drupal website to create
  */
 
 // FIX: Maybe check if directory is writable and return 1 or 0.
@@ -677,91 +657,6 @@ function sitespinner_database_exists($db_spec) {
 
 // }}}
 // misc helper functions
-// {{{ sitespinner_get_settings_filename ($site)
-
-/**
- * function for getting settings filenames when enabling a sub-site
- * @param   string $site
- * @return  string  $settings_filename
- */
-function sitespinner_get_settings_filename($site) {
-  $drupal_root = drush_get_context('DRUSH_DRUPAL_ROOT');
-  $settings_filename = $drupal_root . "/sites/" . $site . "/settings.php";
-  return $settings_filename;
-}
-
-// }}}
-// {{{ sitespinner_get_sites_root($path)
-
-/**
- *  function for finding base_path of all sites
- * @param
- *    string $path the path to search in
- * @return
- *    string $base the base_path of all sites
- */
-function sitespinner_get_sites_root($path) {
-  $str = SITESPINNER_WWW_HOME;
-  if (!empty($str)) {
-    return $str;
-  }
-  // we remove the /htdocs level: we have e.g. 
-  // /home/user/www/www.www.os-cms.net
-  // we remove the base site level: we have e.g. 
-  // /home/user/www 
-  $path = explode('/', $path);
-  array_pop($path);
-  array_pop($path);
-  $base = implode('/', $path);
-  return $base;
-}
-
-// }}}
-// {{{ sitespinner_get_filenames($site)
-
-/**
- * function for creating an array of the most used names when configuring
- * the drupal site and the apache server
- *
- * @param
- *   string   $site
- * @return
- *   array    $filenames  an array of filenames
- */
-function sitespinner_get_filenames($site) {
-  $drupal_root = drush_get_context('DRUSH_DRUPAL_ROOT');
-
-  $settings_file = sitespinner_get_settings_filename($site);
-  $www_base = sitespinner_get_sites_root($drupal_root);
-
-  // find the default apache2.conf file
-  $path = explode('/', __FILE__);
-  array_pop($path);
-  $apache_default_conf = implode('/', $path) . "/apache2/" . SITESPINNER_APACHE_FILE;
-
-  $major_version = substr(drush_drupal_version(), 0, 1);
-  $settings_file_default = implode('/', $path) . "/settings/default.settings.php-" . $major_version . ".x";
-
-  $filenames = array(
-    'drupal_root' => $drupal_root,
-    'drush_command' => $drush_command,
-    'settings_file' => $settings_file,
-    'settings_dir' => $drupal_root . "/sites/" . $site,
-    'settings_file_default' => $settings_file_default,
-    'files_dir' => $drupal_root . '/sites/' . $site . '/files',
-    'www_base' => $www_base,
-    'www_base_site' => $www_base . "/" . $site,
-    'www_base_htdocs' => $www_base . "/" . $site . "/" . SITESPINNER_APACHE_HTDOCS,
-    'www_base_site_logs' => $www_base . "/" . $site . "/" . SITESPINNER_APACHE_LOGS,
-    'www_base_site_access' => $www_base . "/" . $site . "/" . SITESPINNER_APACHE_LOGS . "/access.log",
-    'www_base_site_error' => $www_base . "/" . $site . "/" . SITESPINNER_APACHE_LOGS . "/error.log",
-    'apache_default_conf' => $apache_default_conf,
-    'apache_sites_avail' => SITESPINNER_APACHE_SITES_AVAIL . "/" . $site,
-  );
-  return $filenames;
-}
-
-// }}}
 // {{{ sitespinner_write_settings($setttings_file, $settings)
 
 /**

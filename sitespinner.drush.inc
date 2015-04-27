@@ -537,7 +537,7 @@ function sitespinner_rsync_files($base, $destination) {
  *  The site alias record for the destination database. Must include a database
  *  specification as an array in the form used in settings.php in the
  *  ['sitespinner-destination'] portion of the alias. E.g.
- *  $alias_record['sitespinner-destination']['databases']['default']['default'] = array(
+ *  $alias_record['databases']['default']['default'] = array(
  *    'database' => 'database_name',
  *    'username' => 'user_name',
  *    'password' => 'password',
@@ -554,10 +554,10 @@ function sitespinner_enable_db($alias_record) {
   sitespinner_print(dt("Proceeding and trying to create database. \nYou may be prompted for password: ") . "\n");
 
   // Check to see if this database already exists and if we can connect to it
-  if (empty($alias_record['sitespinner-destination']['databases']['default']['default'])) {
+  if (empty($alias_record['databases']['default']['default'])) {
     return drush_set_error(dt("Database configuration needs to exist in 'sitespinner-destination' section of the destination site alias"));
   }
-  $db_spec = $alias_record['sitespinner-destination']['databases']['default']['default'];
+  $db_spec = $alias_record['databases']['default']['default'];
 
   // We only know how to handle mysql - sorry!
   // TODO support other database types

@@ -125,6 +125,7 @@ function sitespinner_sitespinner($base, $destination) {
   $parse_uri = explode('/', $destination_site_alias_record['uri']);
   $site = end($parse_uri);
 
+  $domain = 'path';
   if (empty($destination_site_alias_record['sitespinner-destination']['create-domain']['type']) || !(in_array($destination_site_alias_record['sitespinner-destination']['create-domain']['type'], array('path', 'domain', 'subdomain')))) {
     $types = array('path', 'domain', 'subdomain');
     $reply = drush_choice($types, 'Please indicate the domain type to use for this site by entering a number from the following list.', '!value');
@@ -152,6 +153,9 @@ function sitespinner_sitespinner($base, $destination) {
   // Copy database and files from source.
   sitespinner_sql_sync($base, $destination);
   sitespinner_rsync_files($base, $destination);
+
+  // Set destination variables from destination site alias record.
+  sitespinner_set_variables($destination);
 
   // Handle domain setting.
   switch ($domain) {

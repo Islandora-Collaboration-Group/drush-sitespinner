@@ -843,3 +843,40 @@ function _sitespinner_array_merge_recursive_distinct ( array &$array1, array &$a
 
   return $merged;
 }
+
+/**
+ * Vset values from the 'variables' array in an alias file to the site
+ *
+ * The variables array consists of name => data pairs, and is found at
+ * ['sitespinner-destination']['variables'] in the site alias array.
+ * Array data values are automatically serialized by vset, and should not be
+ * serialized ahead of time.
+ *
+ * @param string $destination
+ *   a
+ */
+function sitespinner_set_variables($destination) {
+  $destination_site_alias_record = sitespinner_drush_sitealias_get_record($destination);
+  if (!empty($destination_site_alias_record['sitespinner-destination']['variables'])) {
+    foreach($destination_site_alias_record['sitespinner-destination']['variables'] as $name => $data) {
+      sitespinner_set_variable($destination, $name, $data);
+    }
+  }
+}
+
+/**
+ * Set a variable on a site referenced by an alias
+ *
+ * @param string $alias
+ * @param string $name
+ * @param mixed $data
+ */
+function sitespinner_set_variable($alias, $name, $data) {
+  if (!is_string($data)) {
+    $data = serialize($data);
+  }
+  drush_invoke_process($alias, 'vset', $commandline_args = array(
+    $name,
+    $data,
+  ), $commandline_options = array(), $backend_options = TRUE);
+}

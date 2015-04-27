@@ -125,9 +125,6 @@ function sitespinner_sitespinner($base, $destination) {
   $parse_uri = explode('/', $destination_site_alias_record['uri']);
   $site = end($parse_uri);
 
-//  print_r($base_site_alias_record);
-//  print_r($destination_site_alias_record);
-
   if (empty($destination_site_alias_record['sitespinner-destination']['create-domain']['type']) || !(in_array($destination_site_alias_record['sitespinner-destination']['create-domain']['type'], array('path', 'domain', 'subdomain')))) {
     $types = array('path', 'domain', 'subdomain');
     $reply = drush_choice($types, 'Please indicate the domain type to use for this site by entering a number from the following list.', '!value');
@@ -150,7 +147,6 @@ function sitespinner_sitespinner($base, $destination) {
     return 1;
   }
 
-  print_r($destination_db_spec);
   sitespinner_create_site($base_site_alias_record, $destination_site_alias_record);
 
   // Copy database and files from source.
@@ -364,8 +360,6 @@ function sitespinner_create_virtualhost($site, $standalone = FALSE) {
 // FIX: Maybe check if directory is writable and return 1 or 0.
 function sitespinner_create_site($base_site_alias_record, $destination_site_alias_record) {
 
-  // create settings dir 
-  // cp settings file
   sitespinner_exec("mkdir " . $destination_site_alias_record['root']);
   $destination_settings_file_path = $destination_site_alias_record['root'] . "/settings.php";
   $drupal_root = $destination_site_alias_record['root'];

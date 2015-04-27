@@ -786,25 +786,25 @@ function sitespinner_update_etc_hosts($hostname) {
  */
 function sitespinner_drush_sitealias_get_record($alias_name) {
 
-  $raw_destination_site_alias_record = _drush_sitealias_load_alias($alias_name);
-  $destination_site_alias_record = drush_sitealias_get_record($alias_name);
-  if (!empty($raw_destination_site_alias_record['parent'])) {
+  $raw_site_alias_record = _drush_sitealias_load_alias($alias_name);
+  $site_alias_record = drush_sitealias_get_record($alias_name);
+  if (!empty($raw_site_alias_record['parent'])) {
     // Fetch and merge in each parent's sitespinner configuration
-    foreach (explode(',', $raw_destination_site_alias_record['parent']) as $parent) {
+    foreach (explode(',', $raw_site_alias_record['parent']) as $parent) {
       $parent_record = sitespinner_drush_sitealias_get_record($parent);
       if(!empty($parent_record['sitespinner-destination'])) {
-        if(empty($raw_destination_site_alias_record['sitespinner-destination'])) {
-          $destination_site_alias_record['sitespinner-destination'] = $parent['sitespinner-destination'];
+        if(empty($raw_site_alias_record['sitespinner-destination'])) {
+          $site_alias_record['sitespinner-destination'] = $parent['sitespinner-destination'];
         }
         else {
-          $destination_site_alias_record['sitespinner-destination'] = _sitespinner_array_merge_recursive_distinct($parent_record['sitespinner-destination'], $raw_destination_site_alias_record['sitespinner-destination']);
+          $site_alias_record['sitespinner-destination'] = _sitespinner_array_merge_recursive_distinct($parent_record['sitespinner-destination'], $raw_site_alias_record['sitespinner-destination']);
         }
       }
-      $destination_site_alias_record = array_merge($parent_record, $destination_site_alias_record);
+      $site_alias_record = array_merge($parent_record, $site_alias_record);
     }
   }
 
-  return $destination_site_alias_record;
+  return $site_alias_record;
 }
 
 

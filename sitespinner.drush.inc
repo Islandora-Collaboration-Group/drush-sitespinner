@@ -147,7 +147,7 @@ function sitespinner_sitespinner($base, $destination) {
     return 1;
   }
 
-  sitespinner_create_site($base_site_alias_record, $destination_site_alias_record);
+  sitespinner_create_site($destination_site_alias_record);
 
   // Copy database and files from source.
   sitespinner_sql_sync($base, $destination);
@@ -358,14 +358,15 @@ function sitespinner_create_virtualhost($site, $standalone = FALSE) {
  */
 
 // FIX: Maybe check if directory is writable and return 1 or 0.
-function sitespinner_create_site($base_site_alias_record, $destination_site_alias_record) {
+function sitespinner_create_site($destination_site_alias_record) {
 
-  sitespinner_exec("mkdir " . $destination_site_alias_record['root']);
-  $destination_settings_file_path = $destination_site_alias_record['root'] . "/settings.php";
+  $multisite_root = $destination_site_alias_record['root'] . '/sites/' . str_replace('/', '.', $destination_site_alias_record['uri']);
+  sitespinner_exec("mkdir " . $multisite_root);
+  $destination_settings_file_path = $multisite_root . "/settings.php";
   $drupal_root = $destination_site_alias_record['root'];
   if (!empty($destination_site_alias_record['settings_file_template'])) {
     $source_settings_file_path = $destination_site_alias_record['settings_file_template'];
-    if(strpos('/', $source_settings_file_path) !== 0) {
+    if (strpos('/', $source_settings_file_path) !== 0) {
       $source_settings_file_path = $drupal_root . "/" . $source_settings_file_path;
     }
   }
@@ -374,11 +375,10 @@ function sitespinner_create_site($base_site_alias_record, $destination_site_alia
   }
   sitespinner_exec("cp " . $source_settings_file_path . " " . $destination_settings_file_path);
 
-  // search and replace $db_url and write new settings file
   $settings_string = sitespinner_get_file($destination_settings_file_path);
 
-  // search and replace $db_url and write new settings file
-  $database_settings_string = var_export($destination_site_alias_record['sitespinner-destination']['databases'], TRUE);
+  // Search and replace $databases and write new settings file.
+  $database_settings_string = var_export($destination_site_alias_record['databases'], TRUE);
   $search = "\n\$databases = array();\n";
   $replace = "\n\$databases = " . $database_settings_string . ";\n";
   $settings_string = str_replace($search, $replace, $settings_string);
@@ -386,8 +386,8 @@ function sitespinner_create_site($base_site_alias_record, $destination_site_alia
 
   $destination_files_directory = !empty($destination_site_alias_record['sitespinner-destination']['path-aliases']['%files']) ?
     $destination_site_alias_record['sitespinner-destination']['path-aliases']['%files'] :
-    $destination_site_alias_record['root'] . '/files';
-  // secure settings for files and settings
+    $multisite_root . '/files';
+  // Secure settings for files and settings.
   sitespinner_exec("sudo mkdir " . $destination_files_directory);
   sitespinner_exec("sudo chmod " . SITESPINNER_FILES_DIR_PERMS . " " . $destination_files_directory);
   sitespinner_exec("sudo chown " . SITESPINNER_DEFAULT_USER . ":" . SITESPINNER_DEFAULT_GROUP . " " . $destination_files_directory);

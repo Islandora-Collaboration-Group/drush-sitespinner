@@ -61,7 +61,7 @@ function sitespinner_drush_command() {
   // The key in the $items array is the name of the command.
   $items['sitespinner'] = array(
     'description' => dt('create a drupal multi-site install. Will create the specified multi-site in the base /sites folder. E.g. yourmultisite will be placed in sites/www.base-site.net.yourmultisite'),
-    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_ROOT,
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     // The name of the function implementing your command.
     'callback' => 'sitespinner_sitespinner',
     // A short description of your command.
@@ -132,7 +132,7 @@ function sitespinner_sitespinner($base, $destination) {
     return 1;
   }
 
-  $drupal_root = drush_get_context('DRUSH_DRUPAL_ROOT');
+  $drupal_root = $destination_site_alias_record['root'];
   $parse_uri = explode('/', $destination_site_alias_record['uri']);
   $site = end($parse_uri);
 
@@ -388,7 +388,7 @@ function sitespinner_create_site($base_site_alias_record, $destination_site_alia
   // cp settings file
   sitespinner_exec("mkdir " . $destination_site_alias_record['root']);
   $destination_settings_file_path = $destination_site_alias_record['root'] . "/settings.php";
-  $drupal_root = drush_get_context('DRUSH_DRUPAL_ROOT');
+  $drupal_root = $destination_site_alias_record['root'];
   if (!empty($destination_site_alias_record['settings_file_template'])) {
     $source_settings_file_path = $destination_site_alias_record['settings_file_template'];
     if(strpos('/', $source_settings_file_path) !== 0) {
@@ -544,7 +544,7 @@ function sitespinner_rsync_files($base, $destination) {
 
   sitespinner_print("Fixing file ownership and permissions\n");
   sitespinner_exec("sudo chown -R " . SITESPINNER_DEFAULT_USER . ":" . SITESPINNER_DEFAULT_GROUP . " " . $destination_files_directory);
-  $chmod_command = t("for x in @files; do
+  $chmod_command = dt("for x in @files; do
       find \${x} -type d -exec chmod ug=rwx,o= '{}' \\;
       find \${x} -type f -exec chmod ug=rw,o= '{}' \\;
     done",

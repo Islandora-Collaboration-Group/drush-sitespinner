@@ -790,21 +790,26 @@ function sitespinner_update_etc_hosts($hostname) {
  */
 function sitespinner_drush_sitealias_get_record($alias_name) {
 
-  $raw_site_alias_record = _drush_sitealias_load_alias($alias_name);
-  $site_alias_record = drush_sitealias_get_record($alias_name);
-  if (!empty($raw_site_alias_record['parent'])) {
-    // Fetch and merge in each parent's sitespinner configuration
-    foreach (explode(',', $raw_site_alias_record['parent']) as $parent) {
-      $parent_record = sitespinner_drush_sitealias_get_record($parent);
-      if(!empty($parent_record['sitespinner-destination'])) {
-        if(empty($raw_site_alias_record['sitespinner-destination'])) {
-          $site_alias_record['sitespinner-destination'] = $parent['sitespinner-destination'];
+ $site_alias_record = &sitespinner_static(__FUNCTION__ . $alias_name);
+  if (!isset($site_alias_record)) {
+
+    $raw_site_alias_record = _drush_sitealias_load_alias($alias_name);
+    $site_alias_record = drush_sitealias_get_record($alias_name);
+    if (!empty($raw_site_alias_record['parent'])) {
+      // Fetch and merge in each parent's sitespinner configuration
+      foreach (explode(',', $raw_site_alias_record['parent']) as $parent) {
+        $parent_record = sitespinner_drush_sitealias_get_record($parent);
+
+        if (!empty($parent_record['sitespinner-destination'])) {
+          if (empty($raw_site_alias_record['sitespinner-destination'])) {
+            $site_alias_record['sitespinner-destination'] = $parent['sitespinner-destination'];
+          }
+          else {
+            $site_alias_record['sitespinner-destination'] = _sitespinner_array_merge_recursive_distinct($parent_record['sitespinner-destination'], $raw_site_alias_record['sitespinner-destination']);
+          }
         }
-        else {
-          $site_alias_record['sitespinner-destination'] = _sitespinner_array_merge_recursive_distinct($parent_record['sitespinner-destination'], $raw_site_alias_record['sitespinner-destination']);
-        }
+        $site_alias_record = array_merge($parent_record, $site_alias_record);
       }
-      $site_alias_record = array_merge($parent_record, $site_alias_record);
     }
   }
 
@@ -870,11 +875,54 @@ function sitespinner_set_variables($destination) {
  * @param mixed $data
  */
 function sitespinner_set_variable($alias, $name, $data) {
+  $commandline_options = array();
   if (!is_string($data)) {
-    $data = serialize($data);
+    $data = json_encode($data);
+    $commandline_options['format'] = 'json';
   }
   drush_invoke_process($alias, 'vset', $commandline_args = array(
     $name,
     $data,
-  ), $commandline_options = array(), $backend_options = TRUE);
+  ), $commandline_options, $backend_options = TRUE);
+}
+
+/**
+ * Clone of drupal_static function
+ *
+ * @param $name
+ * @param null $default_value
+ * @param bool $reset
+ * @return mixed
+ */
+function &sitespinner_static($name, $default_value = NULL, $reset = FALSE) {
+  static $data = array(), $default = array();
+  // First check if dealing with a previously defined static variable.
+  if (isset($data [$name]) || array_key_exists($name, $data)) {
+    // Non-NULL $name and both $data[$name] and $default[$name] statics exist.
+    if ($reset) {
+      // Reset pre-existing static variable to its default value.
+      $data [$name] = $default [$name];
+    }
+    return $data [$name];
+  }
+  // Neither $data[$name] nor $default[$name] static variables exist.
+  if (isset($name)) {
+    if ($reset) {
+      // Reset was called before a default is set and yet a variable must be
+      // returned.
+      return $data;
+    }
+    // First call with new non-NULL $name. Initialize a new static variable.
+    $default [$name] = $data [$name] = $default_value;
+    return $data [$name];
+  }
+  // Reset all: ($name == NULL). This needs to be done one at a time so that
+  // references returned by earlier invocations of drupal_static() also get
+  // reset.
+  foreach ($default as $name => $value) {
+    $data [$name] = $value;
+  }
+  // As the function returns a reference, the return should always be a
+  // variable.
+  return $data;
 }

@@ -1,7 +1,7 @@
 #### Download And Install
 
 You can find the latest version on bitbucket:
-<a href="https://bitbucket.org/commonmedia/drush-sitespinner">bitbucket.org/commonmedia/drush-sitespinner</a>
+[bitbucket.org/commonmedia/drush-sitespinner](https://bitbucket.org/commonmedia/drush-sitespinner)
 Best option is to cd into your drush/commands folder, and clone the script:
 
      git clone git@bitbucket.org:commonmedia/drush-sitespinner.git
@@ -11,7 +11,7 @@ Best option is to cd into your drush/commands folder, and clone the script:
 Sitespinner provides two drush commands: sitespinner (ss), and 
 sitespinner-delete (ssd).
 
-[Sitespinner] creates a new Drupal multisite based on an existing template site. 
+**Sitespinner** creates a new Drupal multisite based on an existing template site. 
 It uses drush site alias files to describe both the source and destination 
 sites. The source site's database and files directory are copied to the 
 destination site, and then any variables specified in the destination alias are
@@ -28,7 +28,7 @@ Once source and destination alias files are created, then the command is simply:
 
     drush sitespinner @source-alias @destination-alias
 
-[Sitespinner-delete] simply deletes a multisite, given the site alias for that
+**Sitespinner-delete** simply deletes a multisite, given the site alias for that
 site. Specifically, it deletes associated database, removes the files directory,
 removes the sites/{site root} directory, and deletes the multisite symlink at
 the drupal root.

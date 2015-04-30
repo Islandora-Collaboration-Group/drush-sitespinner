@@ -230,7 +230,7 @@ function sitespinner_sitespinner_delete($alias) {
     return 0;
   }
 
-    $res = sitespinner_exec("sudo echo -e " . dt("Started deleting a sub-site"));
+  $res = sitespinner_exec("sudo echo -e " . dt("Started deleting a sub-site"));
   if ($res) {
     sitespinner_print(dt("Could not sudo. Exit"));
     return 1;
@@ -259,8 +259,13 @@ function sitespinner_sitespinner_delete($alias) {
   $multisite_root = $drupal_root . '/sites/' . str_replace('/', '.', $alias_record['uri']);
   $symlink = $drupal_root . '/' . $site;
 
+  // Delete the site's files directory, if present.
+  // TODO: how to ensure it's not in use by another site?!!
+  if (!empty($alias_record['path-aliases']['%files']) && file_exists($alias_record['path-aliases']['%files'])) {
+    sitespinner_exec(dt('rm -r !filespath', array('!filespath' => $alias_record['path-aliases']['%files'])));
+  }
+
   // Delete the sites/[multisite-uri] directory.
-  // Delete the multisite path symlink at the drupal root, if present.
   if (file_exists($multisite_root)) {
     sitespinner_exec(dt('rm -r !sitepath', array('!sitepath' => $multisite_root)));
   }

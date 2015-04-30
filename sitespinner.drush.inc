@@ -68,6 +68,16 @@ function sitespinner_drush_command() {
       'destination-alias' => dt('The drush site alias for the sub-site to create. Use the "domain" option if this site should be reachable on its own domain or subdomain.'),
     ),
     'options' => $options,
+  $items['sitespinner-delete'] = array(
+    'description' => dt('Delete a site: the database and site directory for a given site alias'),
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
+    // The name of the function implementing your command.
+    'callback' => 'sitespinner_sitespinner_delete',
+    // A short description of your command.
+    'arguments' => array(
+      'alias' => dt('The name of the site alias that will be deleted.'),
+    ),
+    'aliases' => array('ssd'),
   );
 
   return $items;
@@ -82,9 +92,14 @@ function sitespinner_drush_command() {
 function sitespinner_drush_help($section) {
   switch ($section) {
     case 'drush:sitespinner':
-      return dt("drush sitespinner is a script that creates a new multi-site cloned from an existing base site. In detail, it: \n* Creates a new folder inside the /sites/ folder for the new site\n* Copies over the base site's :files directory.\n* Creates a new database and copies the data from the base site's database.\n* Creates a settings.php file.\n* Root and site-specific configuration overrides may be provided in the destination site alias.
+      return dt("drush sitespinner is a command that creates a new multi-site cloned from an existing base site. In detail, it: \n* Creates a new folder inside the /sites/ folder for the new site\n* Copies over the base site's :files directory.\n* Creates a new database and copies the data from the base site's database.\n* Creates a settings.php file.\n* Root and site-specific configuration overrides may be provided in the destination site alias.
 \nThe command requires two drush site aliases as arguments: base site, and destination site. Therefore, before you can spin up a new site, you need to have created site aliases for both of these.
 \nConsult the sample aliases file included with this command for complete instructions.");
+      break;
+
+    case 'drush:sitespinner-delete' :
+      return dt('sitespinner-delete is a command that deletes the site directory and associated database corresponding to the provided site alias');
+        break;
   }
 }
 
@@ -181,6 +196,46 @@ function sitespinner_sitespinner($base, $destination) {
 //  sitespinner_enable_cron($site);
 //  sitespinner_print_status($site, $db_res);
   return 0;
+}
+
+// }}}
+// {{{ sitespinner_sitespinner_delete()
+
+function sitespinner_sitespinner_delete($alias) {
+
+
+  $res = sitespinner_exec("sudo echo -e " . dt("Started deleting a sub-site"));
+  if ($res) {
+    sitespinner_print(dt("Could not sudo. Exit"));
+    return 1;
+  }
+
+  $alias_record = drush_sitealias_get_record($alias);
+
+  if (!empty($alias_record['databases']['default']['default'])) {
+    $db_spec = $alias_record['databases']['default']['default'];
+    // Use db_creator credentials, if provided.
+    if (!empty($alias_record['sitespinner-destination']['db_creator'])) {
+      $db_spec['username'] = $alias_record['sitespinner-destination']['db_creator']['username'];
+      $db_spec['password'] = $alias_record['sitespinner-destination']['db_creator']['password'];
+    }
+
+    if (sitespinner_database_exists($db_spec)) {
+      sitespinner_delete_db($db_spec);
+    }
+    else {
+      sitespinner_print(dt("Database doesn't exist, skipping.."));
+    }
+  }
+
+  $drupal_root = $alias_record['root'];
+  $parse_uri = explode('/', $alias_record['uri']);
+  $site = end($parse_uri);
+  $multisite_root = $alias_record['root'] . '/sites/' . str_replace('/', '.', $alias_record['uri']);
+
+  sitespinner_exec(dt('cd !root', array('!root' => $drupal_root)));
+  sitespinner_exec(dt('rm -r !sitepath', array('!sitepath' => $multisite_root)));
+  sitespinner_exec(dt('rm !link', array('!link' => $site)));
 }
 
 // }}}

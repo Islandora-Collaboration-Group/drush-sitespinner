@@ -43,6 +43,15 @@ define ('SITESPINNER_SETTINGS_PERMS', '740');
  */
 define ('SITESPINNER_FILES_DIR_PERMS', '770');
 
+/**
+ * definitions for what to echo when exec commands execute well or with errors
+ * or when simulating the commands
+ */
+define ('ERROR_PREPEND',    dt("Error:    Executing: "));
+define ('NO_ERROR_PREPEND', dt("Ok:       Executing: "));
+define ('SIMULATE_PREPEND', dt("Simulate: Executing: "));
+
+
 
 // {{{ sitespinner_drush_command()
 
@@ -68,6 +77,9 @@ function sitespinner_drush_command() {
       'destination-alias' => dt('The drush site alias for the sub-site to create. Use the "domain" option if this site should be reachable on its own domain or subdomain.'),
     ),
     'options' => $options,
+    'aliases' => array('ss'),
+  );
+
   $items['sitespinner-delete'] = array(
     'description' => dt('Delete a site: the database and site directory for a given site alias'),
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
@@ -125,11 +137,13 @@ function sitespinner_sitespinner($base, $destination) {
   $silent = drush_get_option('s');
   $simulate = drush_get_option('simulate');
 
+  // Verify base site alias.
   $base_site_alias_record = drush_sitealias_get_record($base);
   if (!$base_site_alias_record) {
     sitespinner_print(dt("'@alias' was not recognized as a valid source site alias. Exit. ", array('@alias' => $base)) . "\n");
     return 1;
   }
+  // Verify destination site alias.
   $destination_site_alias_record = sitespinner_drush_sitealias_get_record($destination);
   if (!$destination_site_alias_record) {
     sitespinner_print(dt("'@alias' was not recognized as a valid destination site alias. Exit. ", array('@alias' => $destination)) . "\n");
@@ -140,6 +154,7 @@ function sitespinner_sitespinner($base, $destination) {
   $parse_uri = explode('/', $destination_site_alias_record['uri']);
   $site = end($parse_uri);
 
+  // Determine domain type (path, domain, or subdomain).
   $domain = 'path';
   if (empty($destination_site_alias_record['sitespinner-destination']['create-domain']['type']) || !(in_array($destination_site_alias_record['sitespinner-destination']['create-domain']['type'], array('path', 'domain', 'subdomain')))) {
     $types = array('path', 'domain', 'subdomain');
@@ -151,25 +166,28 @@ function sitespinner_sitespinner($base, $destination) {
     sitespinner_print(dt("\"@domain\" was chosen for the domain setting.\n", array('@domain' => $domain)));
   }
 
+  // Test to see if we can sudo. If not, exit.
   $res = sitespinner_exec("sudo echo -e " . dt("Started enabling a sub-site"));
   if ($res) {
     sitespinner_print(dt("Could not sudo. Exit"));
     return 1;
   }
 
+  // Try to create the database. If it exists, try to delete and re-create.
   $destination_db_spec = sitespinner_enable_db($destination_site_alias_record);
   if (!$destination_db_spec) {
     sitespinner_print(dt("Could not make database. Exit\n"));
     return 1;
   }
 
+  // Create the multisite root with settings.php file.
   sitespinner_create_site($destination_site_alias_record);
 
-  // Copy database and files from source.
+  // Copy database and files directory from source.
   sitespinner_sql_sync($base, $destination);
   sitespinner_rsync_files($base, $destination);
 
-  // Set destination variables from destination site alias record.
+  // Set destination variables using the destination site alias record.
   sitespinner_set_variables($destination);
 
   // Handle domain setting.
@@ -192,9 +210,7 @@ function sitespinner_sitespinner($base, $destination) {
   }
 
 
-  // check to see if user wants a default cron line
-//  sitespinner_enable_cron($site);
-//  sitespinner_print_status($site, $db_res);
+  sitespinner_print(dt("Site created. Test it at http://!uri\n", array('!uri' => $destination_site_alias_record['uri'])));
   return 0;
 }
 

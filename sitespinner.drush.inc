@@ -219,14 +219,23 @@ function sitespinner_sitespinner($base, $destination) {
 
 function sitespinner_sitespinner_delete($alias) {
 
+  $alias_record = drush_sitealias_get_record($alias);
 
-  $res = sitespinner_exec("sudo echo -e " . dt("Started deleting a sub-site"));
+  $readline_str = dt("Are you sure you want to delete the site at !uri?", array('!uri' => $alias_record['uri'])) . dt(" [y/N]? ");
+  $confirm = strtoupper(sitespinner_readline($readline_str));
+
+  // Check to see if the user wants to use existing database.
+  if ($confirm != 'Y') {
+    sitespinner_print(dt('Cancelled!') . "\n");
+    return 0;
+  }
+
+    $res = sitespinner_exec("sudo echo -e " . dt("Started deleting a sub-site"));
   if ($res) {
     sitespinner_print(dt("Could not sudo. Exit"));
     return 1;
   }
 
-  $alias_record = drush_sitealias_get_record($alias);
 
   if (!empty($alias_record['databases']['default']['default'])) {
     $db_spec = $alias_record['databases']['default']['default'];
@@ -240,18 +249,32 @@ function sitespinner_sitespinner_delete($alias) {
       sitespinner_delete_db($db_spec);
     }
     else {
-      sitespinner_print(dt("Database doesn't exist, skipping.."));
+      sitespinner_print(dt("Database doesn't exist, skipping..") . "\n");
     }
   }
 
   $drupal_root = $alias_record['root'];
   $parse_uri = explode('/', $alias_record['uri']);
   $site = end($parse_uri);
-  $multisite_root = $alias_record['root'] . '/sites/' . str_replace('/', '.', $alias_record['uri']);
+  $multisite_root = $drupal_root . '/sites/' . str_replace('/', '.', $alias_record['uri']);
+  $symlink = $drupal_root . '/' . $site;
 
-  sitespinner_exec(dt('cd !root', array('!root' => $drupal_root)));
-  sitespinner_exec(dt('rm -r !sitepath', array('!sitepath' => $multisite_root)));
-  sitespinner_exec(dt('rm !link', array('!link' => $site)));
+  // Delete the sites/[multisite-uri] directory.
+  // Delete the multisite path symlink at the drupal root, if present.
+  if (file_exists($multisite_root)) {
+    sitespinner_exec(dt('rm -r !sitepath', array('!sitepath' => $multisite_root)));
+  }
+  else {
+    sitespinner_print(dt('Attempting to delete !multisiteroot, but it does not exist. Skipping...', array('!multisiteroot' => $multisite_root)) . "\n");
+  }
+
+  // Delete the multisite path symlink at the drupal root, if present.
+  if (file_exists($symlink)) {
+    sitespinner_exec(dt('rm !link', array('!link' => $symlink)));
+  }
+  else {
+    sitespinner_print(dt('Attempting to delete !symlink, but it does not exist. Skipping...', array('!symlink' => $symlink)) . "\n");
+  }
 }
 
 // }}}
@@ -459,15 +482,27 @@ function sitespinner_create_site($destination_site_alias_record) {
   $settings_string = str_replace($search, $replace, $settings_string);
   sitespinner_write_settings($destination_settings_file_path, $settings_string);
 
+  // Create and secure the site root directory. Use server environment settings from the destination alias file, if possible.
   $destination_files_directory = !empty($destination_site_alias_record['sitespinner-destination']['path-aliases']['%files']) ?
     $destination_site_alias_record['sitespinner-destination']['path-aliases']['%files'] :
     $multisite_root . '/files';
-  // Secure settings for files and settings.
+  $default_user = !empty($destination_site_alias_record['server-environment']['default_user']) ?
+    $destination_site_alias_record['server-environment']['default_user'] :
+    SITESPINNER_DEFAULT_USER;
+  $default_group = !empty($destination_site_alias_record['server-environment']['default_group']) ?
+    $destination_site_alias_record['server-environment']['default_group'] :
+    SITESPINNER_DEFAULT_GROUP;
+  $files_directory_permissions = !empty($destination_site_alias_record['server-environment']['files_directory_permissions']) ?
+    $destination_site_alias_record['server-environment']['files_directory_permissions'] :
+    SITESPINNER_FILES_DIR_PERMS;
+  $setings_file_permissions = !empty($destination_site_alias_record['server-environment']['settings_file_permissions']) ?
+    $destination_site_alias_record['server-environment']['settings_file_permissions'] :
+    SITESPINNER_SETTINGS_PERMS;
   sitespinner_exec("sudo mkdir " . $destination_files_directory);
-  sitespinner_exec("sudo chmod " . SITESPINNER_FILES_DIR_PERMS . " " . $destination_files_directory);
-  sitespinner_exec("sudo chown " . SITESPINNER_DEFAULT_USER . ":" . SITESPINNER_DEFAULT_GROUP . " " . $destination_files_directory);
-  sitespinner_exec("sudo chmod " . SITESPINNER_SETTINGS_PERMS . " " . $destination_settings_file_path);
-  sitespinner_exec("sudo chown " . SITESPINNER_DEFAULT_USER . ":" . SITESPINNER_DEFAULT_GROUP . " " . $destination_settings_file_path);
+  sitespinner_exec("sudo chmod " . $files_directory_permissions . " " . $destination_files_directory);
+  sitespinner_exec("sudo chown " . $default_user . ":" . $default_group . " " . $destination_files_directory);
+  sitespinner_exec("sudo chmod " . $setings_file_permissions . " " . $destination_settings_file_path);
+  sitespinner_exec("sudo chown " . $default_user . ":" . $default_group . " " . $destination_settings_file_path);
 }
 
 // }}}
@@ -528,7 +563,7 @@ function sitespinner_delete_db($db_spec) {
     $command .= "-p" . $db_spec['password'] . " ";
     $command .= "-u" . $db_spec['username'] . " drop ";
     $command .= $db_spec['database'];
-    sitespinner_exec($command);
+    $success = !sitespinner_exec($command);
   }
   else {
     if ($db_spec['driver'] == 'pgsql') {
@@ -540,14 +575,21 @@ function sitespinner_delete_db($db_spec) {
         $command .= "-p " . $db_spec['port'] . " ";
       }
       $command .= '"' . $db_spec['database'] . '"';
-      sitespinner_exec($command);
+      $success = !sitespinner_exec($command);
     }
     else {
-      sitespinner_print(dt("Unknown driver: ") . $db_spec['driver']);
+      $success = 0;
+        sitespinner_print(dt("Unknown driver: ") . $db_spec['driver'] . "\n");
       return 0;
     }
   }
-  return 1;
+  if ($success) {
+    return 1;
+  }
+  else {
+    sitespinner_print(dt('Could not delete database!'));
+    return 0;
+  }
 }
 
 // }}}

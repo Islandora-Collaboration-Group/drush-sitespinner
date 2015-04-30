@@ -1,126 +1,139 @@
 #### Download And Install
 
-I moved these scripts to github some time ago. You can find the
-latest version on
-<a href="https://github.com/diversen/densite">github.com/diversen/densite</a>
+You can find the latest version on bitbucket:
+<a href="https://bitbucket.org/commonmedia/drush-sitespinner">bitbucket.org/commonmedia/drush-sitespinner</a>
 Best option is to cd into your drush/commands folder, and clone the script:
 
-     git clone git://github.com/diversen/densite.git
-
-then they are installed. You can use the master or select latest tag.
+     git clone git@bitbucket.org:commonmedia/drush-sitespinner.git
 
 #### Introduction
 
-The following scripts are tested and working on Debian systems
-MySQL and Postgresql is supported.
-The densite scripts creates virtual host configuration and drupal-5.x and
-drupal-6.x, drupal-7.x sites (most testing is done with drupal-6.x). It also updates
-your /etc/hosts file with installed site. It can also 'curl' a default user
-so you don't have to use the browser. This only works on drupal-6.x
+Sitespinner provides two drush commands: sitespinner (ss), and 
+sitespinner-delete (ssd).
 
-The script also secures your site by setting good permissions for your
-file folder and your settings.php file. The default configuration will also
-delete all .txt files. Finally crontab will be updated.
+[Sitespinner] creates a new Drupal multisite based on an existing template site. 
+It uses drush site alias files to describe both the source and destination 
+sites. The source site's database and files directory are copied to the 
+destination site, and then any variables specified in the destination alias are
+written on the destination site, overriding the original values.
 
+This is a novel approach to using site aliases, since normally they are used to
+describe sites that already exist. It occurred to us as we began to think about
+how to supply configuration options to a drush command, that extending the idea 
+of site alias files made a lot of sense. A standard site alias file already 
+provides information about where the site lives and how it is eached ('root' 
+and 'uri'), how it connects to the database, where it's files directory is, etc.
+
+Once source and destination alias files are created, then the command is simply:
+
+    drush sitespinner @source-alias @destination-alias
+
+[Sitespinner-delete] simply deletes a multisite, given the site alias for that
+site. Specifically, it deletes associated database, removes the files directory,
+removes the sites/{site root} directory, and deletes the multisite symlink at
+the drupal root.
+    
 #### Requirements
 
-* Access to creating crontab entries
-* a2ensite
-* a2dissite
 * [drush-All-Versions-2.0.tar.gz](http://ftp.drupal.org/files/projects/drush-All-Versions-2.0.tar.gz) Or later.
 * Or any later version should work.
 * PHP, Apache2, MySQL or PostgreSQL
-* sudo (and root privileges) (on other Debian you may need to do
+* sudo (and root privileges) (on other Debian you may need to do:
 
     su root
 
 * Access to creating databases (MySQL or PostgreSQL or both)
 
-#### Config
-
-For configuration you can look at the following two files and change them
-as needed. Else they will just be created from the default config files:
-
-    /path/to/drush/commands/densite/apache2/apache2.conf
-    /path/to/drush/commands/densite/densite.conf
-
 #### Usage
 
-If you yet does not have a working drupal install, you can use the densitein
-(densite install) command which will prompt for a version to
-download and install. The version you download will be installed
-in your current working directory. E.g. make a www directory in your
-home folder, e.g:
+To use this command, you must have a working Drupal site that either already
+is functioning as a multisite, or that you want to function as a multisite. You must
+have created a site alias file for the existing (source) site that you wish to
+use as a template for the new multisite. This can be the root (default) site,
+or another multisite found in the sites directory. Finally, you will need to
+create a site alias file for the new (destination) multisite that you wish to
+create.
+ 
+Consult the sample aliases file found within the examples folder. Also, consult
+the documentation for drush alias files:
 
-    mkdir /home/user/www && cd /home/user/www
-    drush densitein www.example.com
+    drush topic docs-aliases
 
-(You will not be able to visit the real www.example.com after this, because
-/etc/hosts now has this domain.
+Alias files are typically installed at ~/.drush/. Consult the above documentation
+for alternate locations.
 
-To create a sub site in a install of drupal. cd to the document root of
-your newly installed site, e.g.:
+To be used as a source alias with sitespinner, the source alias file, at a
+minimum, needs to provide values for these:
 
-    /home/user/www/www.example.com/htdocs
+    ['root'] (The Drupal root)
+    ['uri']
+    ['db_url'] or ['databases']
+    ['path-aliases']['%files']
 
-Create and enable a subsite use:
+To be used as a destination site alias, the file needs to provide, at a minimum,
+values for these:
 
-    drush densite example2.com
+    ['root'] (This is the drupal root, not the path to the actual multisite's directory under /sites/.)
+    ['uri']
+    ['databases']['default']['default'] (IMPORTANT: ['db_url'] will not work!!!!)
+    ['path-aliases']['%files']
+    
+Other sitespinner-specific values that you should normally provide:
 
-The name your are using will be used as the ServerName in your VirtualHost configuration. The name will figure as the site name in the sites/ folder, e.g. sites/dev.os-cms.net for the above example. It will also be used as the apache2 virtualHost configuration placed in /etc/apache2/sites-available folder. If you choose to let the densite script generate a database name, then the name of the database will be devoscmsnet (the site's name without any special signs). Created log files for apache2 will be placed in (from your current drupal document root view):
+    ['sitespinner-destination']['db_creator'] = array(
+        'username' => "...",
+        'password' => "...",
+    );
+        Since you will be creating a database, you will probably need 
+        to provide a mysql username and password for a more privileged 
+        user than your standard drupal database user. If not provided, then
+        this command will attempt to create the database using the default
+        drupal database connection info.
+        
+    ['sitespinner-destination']['settings_file_template'] 
+        A path to a file to use as a settings.php template. It must contain a
+        line with the text  "$databases = array();". If not provided, the 
+        /sites/default/default.settings.php file will be used.
+        
+    ['sitespinner-destination']['server-environment'] = array(
+        'default_user' => "...",
+        'default_group' => "...",
+        'settings_file_permissions' => '640',
+        'files_directory_permissions' => '770',
+    );
+        Users, groups, and permissions for the files and directories that will be created.
+        
+    ['sitespinner-destination']['create-domain'] = array(
+        'type' => 'path',
+        'name' => '...',
+    );
+        TODO: Not fully implemented. Read the notes in the sample aliases file.
 
-    ../../dev.os-cms.net/logs
-    ../../dev.os-cms.net/logs/access.log
-    ../../dev.os-cms.net/logs/error.log
+Variable overrides. Any key => value pairs that you put into the variables array
+will be written to the variables table in the destination site's database. In this way
+you can specify the site name, theme settings, and many other configuration options.
+Any array values will be recursively merged with values provided in inherited (parent) alias
+files.
 
-Delete the newly created subsite:
+    ['sitespinner-destination']['variables'] = array(
+        'key' => 'value',
+        'another key' => array(
+            'cool' => 'I can write arrays to the variables table!'
+        ),
+    );
 
-    drush dissite example2.com
+#### Using parent aliases
 
-Deletes database for website, log files, apache2 virtualhost file and
-reloads apache2 and removes the site files, and removes the crontab entry,
-step by steep.
+A little known feature of drush site aliases is that you can specify a comma-separated
+list of site aliases whose properties will be inherited by this alias. To do so, add a
+'parent' key to the alias array:
 
-In order to create and enable a new (s)tand(a)lone or base install:
+    'parent' => '@etc, @grandparent, @parent',
 
-cd to document root of your site, e.g:
-
-    cd /home/user/www/www.example.com/htdocs
-    drush densitesa example3.com
-
-Notice the name of the command. It is just densite ending with 'sa' (standalone).
- You can clone the current site or you can download a version of
-drupal of your choice. You will be prompted for the version you wish to
-download. The new site will be created like this (from your current drupal
-document root view:)
-
-    ../../dev.os-cms.net/logs
-    ../../dev.os-cms.net/htdocs
-
-Notice That a base install creates a folder called htdocs containing the
-new base site. Log files will also be created as in the densite command:
-
-    ../../dev.os-cms.net/logs
-    ../../dev.os-cms.net/logs/access.log
-    ../../dev.os-cms.net/logs/error.log
-
-Delete a (s)tand(a)lone drupal install:
-
-    drush dissitesa example3.com
-
-In order to delete a standalone or base site all sub sites needs to
-be deleted first. For each of the standalone code bases you can use the
-densite command for creating new sub sites. Or the dissite command for
-deleting them.
-
-List all sites installed with the densite, densitesa, and densitein commands.
-You have to stand in a directory containing a base install, e.g. in:
-
-    cd /home/user/www/dev.os-cms.net/htdocs
-
-And do a:
-
-    drush listsites
+This can be handy when managing multiple configurations of sites in your multisite
+setup. You can define the characteristics that are common to a given configuration
+in the parent alias, and then in the child site, just provide those details that
+are needed for that site.
 
 #### Options
 

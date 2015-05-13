@@ -245,12 +245,7 @@ function sitespinner_sitespinner_delete($alias) {
       $db_spec['password'] = $alias_record['sitespinner-destination']['db_creator']['password'];
     }
 
-    if (sitespinner_database_exists($db_spec)) {
-      sitespinner_delete_db($db_spec);
-    }
-    else {
-      sitespinner_print(dt("Database doesn't exist, skipping..") . "\n");
-    }
+    sitespinner_delete_db($db_spec);
   }
 
   $drupal_root = $alias_record['root'];
@@ -640,94 +635,19 @@ function sitespinner_enable_db($alias_record) {
   }
   $db_spec = $alias_record['databases']['default']['default'];
 
-  // We only know how to handle mysql - sorry!
-  // TODO support other database types
-  if (!empty($db_spec['driver']) && $db_spec['driver'] != 'mysql') {
-    return drush_set_error(dt("'!driver' databases are not supported at this time. Exit.", array('!driver' => $db_spec['driver'])));
-  }
-
   // Use db_creator credentials, if provided.
   if (!empty($alias_record['sitespinner-destination']['db_creator'])) {
     $db_spec['username'] = $alias_record['sitespinner-destination']['db_creator']['username'];
     $db_spec['password'] = $alias_record['sitespinner-destination']['db_creator']['password'];
   }
 
-  if (sitespinner_database_exists($db_spec)) {
-    sitespinner_print("\n" . dt("Database ") . $db_spec['database'] . dt(" already exists and user can connect to it.") . "\n");
-    $readline_str = dt("Do you want to drop the given database and create it again") . dt(" [Y/n]? ");
-    $db_use_exists = strtoupper(sitespinner_readline($readline_str));
-
-    // Check to see if the user wants to use existing database
-    if ($db_use_exists == 'Y' || empty ($db_use_exists)) {
-
-      // delete database
-      if (!sitespinner_delete_db($db_spec)) {
-        sitespinner_print(dt("Could not drop database. ") . $db_spec['database'] . "\n");
-        return 0;
-      }
-      // continue and create databse
-      if (!sitespinner_create_db($db_spec)) {
-        return 0;
-      }
-      else {
-        return $db_spec;
-      }
-    }
-    // database does not exist. Lets create it.
+  if (!sitespinner_create_db($db_spec)) {
+    return 0;
   }
   else {
-    if (!sitespinner_create_db($db_spec)) {
-      sitespinner_enable_db($alias_record, 1);
-      return 0;
-    }
-    else {
-      return $db_spec;
-    }
+    return $db_spec;
   }
-  return 0;
-}
 
-// }}}
-// {{{ sitespinner_database_exists($db_spec)
-/**
- * function for checking if database exists.
- * @param
- *   array $db_spec an array with the information about the database
- * return
- *   int  1 if exists 0 if not
- */
-function sitespinner_database_exists($db_spec) {
-  // the command returns with positive int if mysql can not use 
-  // the database specified in $db_spec[database]
-  if ($db_spec['driver'] == 'mysql' || $db_spec['driver'] == 'mysqli') {
-    $res = sitespinner_exec("echo 'use $db_spec[database]' | mysql -u$db_spec[username] -p$db_spec[password] -h$db_spec[host]", 1);
-    if ($res) {
-      return 0;
-    }
-    else {
-      return 1;
-    }
-  }
-  else {
-    if ($db_spec['driver'] == 'pgsql') {
-      // this shell command returns 1 if a pgsql database is found with the name $db_spec['database'];
-      $command = "export PGPASSWORD='$db_spec[password]';";
-      $command .= "sql=\"select count(1) from pg_catalog.pg_database where datname = '$db_spec[database]'\" && ";
-      $command .= "cmd=\"psql -U$db_spec[username] -h$db_spec[host] -t -c \\\"\$sql\\\"\"";
-      $command .= " && db_exists=`eval \$cmd` && exit \$db_exists";
-
-      // FIX: NICER WAYS TO DO THIS
-      // print $command . "\n";
-      $res = sitespinner_exec($command, 1);
-      // print "res $res";
-      if ($res) {
-        return 1;
-      }
-      else {
-        return 0;
-      }
-    }
-  }
 }
 
 // }}}

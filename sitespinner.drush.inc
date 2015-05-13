@@ -524,31 +524,14 @@ function sitespinner_create_site($destination_site_alias_record) {
  *
  */
 function sitespinner_create_db($db_spec) {
-  if ($db_spec['driver'] == 'mysql' || $db_spec['driver'] == 'mysqli') {
-    $command = "mysqladmin -h" . $db_spec['host'] . " ";
-    $command .= "-p" . $db_spec['password'] . " ";
-    $command .= "-u" . $db_spec['username'] . " ";
-    $command .= "create " . $db_spec['database'];
-    sitespinner_exec($command);
+  drush_include(DRUSH_BASE_PATH . '/commands/sql', 'sql.drush');
+  $success = _drush_sql_create($db_spec);
+  if ($success) {
+    return 1;
   }
   else {
-    if ($db_spec['driver'] == 'pgsql') {
-      $command = "export PGPASSWORD='$db_spec[password]'; ";
-      $command .= "createdb -O " . $db_spec['username'] . " ";
-      $command .= "-U " . $db_spec['username'] . " ";
-      $command .= "-h " . $db_spec['host'] . " ";
-      if (!empty($db_spec['port'])) {
-        $command .= "-p " . $db_spec['port'] . " ";
-      }
-      $command .= "-E " . SITESPINNER_SQL_ENCODING . " " . $db_spec['database'];
-      sitespinner_exec($command);
-    }
-    else {
-      sitespinner_print(dt("Unknown driver: ") . $db_spec['driver'] . "\n");
-      return 0;
-    }
+    return 0;
   }
-  return 1;
 }
 
 // }}}
@@ -562,32 +545,8 @@ function sitespinner_create_db($db_spec) {
  *   int 1 on success 0 on failure
  */
 function sitespinner_delete_db($db_spec) {
-  if ($db_spec['driver'] == 'mysql' || $db_spec['driver'] == 'mysqli') {
-    $command = "mysqladmin --force ";
-    $command .= "-h" . $db_spec['host'] . " ";
-    $command .= "-p" . $db_spec['password'] . " ";
-    $command .= "-u" . $db_spec['username'] . " drop ";
-    $command .= $db_spec['database'];
-    $success = !sitespinner_exec($command);
-  }
-  else {
-    if ($db_spec['driver'] == 'pgsql') {
-      $command = "export PGPASSWORD='$db_spec[password]';";
-      $command .= "dropdb ";
-      $command .= "-h " . $db_spec['host'] . " ";
-      $command .= "-U " . $db_spec['username'] . " ";
-      if (!empty($db_spec['port'])) {
-        $command .= "-p " . $db_spec['port'] . " ";
-      }
-      $command .= '"' . $db_spec['database'] . '"';
-      $success = !sitespinner_exec($command);
-    }
-    else {
-      $success = 0;
-        sitespinner_print(dt("Unknown driver: ") . $db_spec['driver'] . "\n");
-      return 0;
-    }
-  }
+  drush_include(DRUSH_BASE_PATH . '/commands/sql', 'sql.drush');
+  $success = _drush_sql_drop($db_spec);
   if ($success) {
     return 1;
   }

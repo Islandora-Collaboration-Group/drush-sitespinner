@@ -205,6 +205,14 @@ function sitespinner_sitespinner($base, $destination) {
     default:
       // Create a to-self symlink using multisite name in the drupal root.
       sitespinner_exec(dt('sudo ln -s . @uri ', array('@uri' => $drupal_root . "/" . $site)));
+      $default_user = !empty($destination_alias_record['sitespinner-destination']['server-environment']['default_user']) ?
+        $destination_alias_record['sitespinner-destination']['server-environment']['default_user'] :
+        SITESPINNER_DEFAULT_USER;
+      $default_group = !empty($destination_alias_record['sitespinner-destination']['server-environment']['default_group']) ?
+        $destination_alias_record['sitespinner-destination']['server-environment']['default_group'] :
+        SITESPINNER_DEFAULT_GROUP;
+      sitespinner_exec("sudo chown " . $default_user . ":" . $default_group . " " . $drupal_root . "/" . $site);
+
       break;
 
   }
@@ -594,7 +602,7 @@ function sitespinner_rsync_files($base, $destination) {
     'yes' => TRUE,
     'exclude' => '*/settings.php'
   ), $backend_options = TRUE);
-  
+
   sitespinner_print("Fixing file ownership and permissions\n");
   sitespinner_exec("sudo chown -R " . $default_user . ":" . $default_group . " " . $destination_files_directory);
   $chmod_command = dt("for x in @files; do

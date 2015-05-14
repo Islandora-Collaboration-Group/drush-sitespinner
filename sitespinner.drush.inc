@@ -205,11 +205,11 @@ function sitespinner_sitespinner($base, $destination) {
     default:
       // Create a to-self symlink using multisite name in the drupal root.
       sitespinner_exec(dt('sudo ln -s . @uri ', array('@uri' => $drupal_root . "/" . $site)));
-      $default_user = !empty($destination_alias_record['sitespinner-destination']['server-environment']['default_user']) ?
-        $destination_alias_record['sitespinner-destination']['server-environment']['default_user'] :
+      $default_user = !empty($destination_site_alias_record['sitespinner-destination']['server-environment']['default_user']) ?
+        $destination_site_alias_record['sitespinner-destination']['server-environment']['default_user'] :
         SITESPINNER_DEFAULT_USER;
-      $default_group = !empty($destination_alias_record['sitespinner-destination']['server-environment']['default_group']) ?
-        $destination_alias_record['sitespinner-destination']['server-environment']['default_group'] :
+      $default_group = !empty($destination_site_alias_record['sitespinner-destination']['server-environment']['default_group']) ?
+        $destination_site_alias_record['sitespinner-destination']['server-environment']['default_group'] :
         SITESPINNER_DEFAULT_GROUP;
       sitespinner_exec("sudo chown " . $default_user . ":" . $default_group . " " . $drupal_root . "/" . $site);
 

@@ -575,7 +575,16 @@ function sitespinner_rsync_files($base, $destination) {
   sitespinner_print("Copying files directory: \n");
 
   $destination_alias_record = sitespinner_drush_sitealias_get_record($destination);
-  $destination_files_directory = $destination_alias_record['path-aliases']['%files'];
+  $multisite_root = $destination_alias_record['root'] . '/sites/' . str_replace('/', '.', $destination_alias_record['uri']);
+  $destination_files_directory = !empty($destination_alias_record['sitespinner-destination']['path-aliases']['%files']) ?
+    $destination_alias_record['sitespinner-destination']['path-aliases']['%files'] :
+    $multisite_root . '/files';
+  $default_user = !empty($destination_alias_record['sitespinner-destination']['server-environment']['default_user']) ?
+    $destination_alias_record['sitespinner-destination']['server-environment']['default_user'] :
+    SITESPINNER_DEFAULT_USER;
+  $default_group = !empty($destination_alias_record['sitespinner-destination']['server-environment']['default_group']) ?
+    $destination_alias_record['sitespinner-destination']['server-environment']['default_group'] :
+    SITESPINNER_DEFAULT_GROUP;
   $base .= ':%files';
   $destination .= ':%files';
   drush_invoke_process($base, 'rsync', $commandline_args = array(
@@ -585,9 +594,9 @@ function sitespinner_rsync_files($base, $destination) {
     'yes' => TRUE,
     'exclude' => '*/settings.php'
   ), $backend_options = TRUE);
-
+  
   sitespinner_print("Fixing file ownership and permissions\n");
-  sitespinner_exec("sudo chown -R " . SITESPINNER_DEFAULT_USER . ":" . SITESPINNER_DEFAULT_GROUP . " " . $destination_files_directory);
+  sitespinner_exec("sudo chown -R " . $default_user . ":" . $default_group . " " . $destination_files_directory);
   $chmod_command = dt("for x in @files; do
       find \${x} -type d -exec chmod ug=rwx,o= '{}' \\;
       find \${x} -type f -exec chmod ug=rw,o= '{}' \\;

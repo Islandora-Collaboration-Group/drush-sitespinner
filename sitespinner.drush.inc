@@ -520,13 +520,7 @@ function sitespinner_create_site($destination_site_alias_record) {
  */
 function sitespinner_create_db($db_spec) {
   drush_include(DRUSH_BASE_PATH . '/commands/sql', 'sql.drush');
-  $success = _drush_sql_create($db_spec);
-  if ($success) {
-    return 1;
-  }
-  else {
-    return 0;
-  }
+  return _drush_sql_create($db_spec);
 }
 
 // }}}

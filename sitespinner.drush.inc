@@ -211,7 +211,7 @@ function sitespinner_sitespinner($base, $destination) {
       $default_group = !empty($destination_site_alias_record['sitespinner-destination']['server-environment']['default_group']) ?
         $destination_site_alias_record['sitespinner-destination']['server-environment']['default_group'] :
         SITESPINNER_DEFAULT_GROUP;
-      sitespinner_exec("sudo chown " . $default_user . ":" . $default_group . " " . $drupal_root . "/" . $site);
+      sitespinner_exec("sudo chown -h " . $default_user . ":" . $default_group . " " . $drupal_root . "/" . $site);
 
       break;
 

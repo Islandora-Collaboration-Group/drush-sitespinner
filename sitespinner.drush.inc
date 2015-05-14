@@ -486,17 +486,17 @@ function sitespinner_create_site($destination_site_alias_record) {
   $destination_files_directory = !empty($destination_site_alias_record['sitespinner-destination']['path-aliases']['%files']) ?
     $destination_site_alias_record['sitespinner-destination']['path-aliases']['%files'] :
     $multisite_root . '/files';
-  $default_user = !empty($destination_site_alias_record['server-environment']['default_user']) ?
-    $destination_site_alias_record['server-environment']['default_user'] :
+  $default_user = !empty($destination_site_alias_record['sitespinner-destination']['server-environment']['default_user']) ?
+    $destination_site_alias_record['sitespinner-destination']['server-environment']['default_user'] :
     SITESPINNER_DEFAULT_USER;
-  $default_group = !empty($destination_site_alias_record['server-environment']['default_group']) ?
-    $destination_site_alias_record['server-environment']['default_group'] :
+  $default_group = !empty($destination_site_alias_record['sitespinner-destination']['server-environment']['default_group']) ?
+    $destination_site_alias_record['sitespinner-destination']['server-environment']['default_group'] :
     SITESPINNER_DEFAULT_GROUP;
-  $files_directory_permissions = !empty($destination_site_alias_record['server-environment']['files_directory_permissions']) ?
-    $destination_site_alias_record['server-environment']['files_directory_permissions'] :
+  $files_directory_permissions = !empty($destination_site_alias_record['sitespinner-destination']['server-environment']['files_directory_permissions']) ?
+    $destination_site_alias_record['sitespinner-destination']['server-environment']['files_directory_permissions'] :
     SITESPINNER_FILES_DIR_PERMS;
-  $setings_file_permissions = !empty($destination_site_alias_record['server-environment']['settings_file_permissions']) ?
-    $destination_site_alias_record['server-environment']['settings_file_permissions'] :
+  $setings_file_permissions = !empty($destination_site_alias_record['sitespinner-destination']['server-environment']['settings_file_permissions']) ?
+    $destination_site_alias_record['sitespinner-destination']['server-environment']['settings_file_permissions'] :
     SITESPINNER_SETTINGS_PERMS;
   sitespinner_exec("sudo mkdir " . $destination_files_directory);
   sitespinner_exec("sudo chmod " . $files_directory_permissions . " " . $destination_files_directory);

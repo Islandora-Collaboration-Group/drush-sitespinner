@@ -1,7 +1,7 @@
 #### Download And Install
 
-You can find the latest version on bitbucket:
-[bitbucket.org/commonmedia/drush-sitespinner](https://bitbucket.org/commonmedia/drush-sitespinner)
+You can find the latest version on github:
+[https://github.com/Islandora-Collaboration-Group/drush-sitespinner](https://github.com/Islandora-Collaboration-Group/drush-sitespinner)
 Best option is to cd into your drush/commands folder, and clone the script:
 
      git clone git@bitbucket.org:commonmedia/drush-sitespinner.git

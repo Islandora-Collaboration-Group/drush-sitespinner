@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="ICG Drush-SiteSpinner : Drush-SiteSpinner creates a new Drupal multisite based on an existing template site. It uses drush site alias files to describe both the source and destination sites. The source site&#39;s database and files directory are copied to the destination site, and then any variables specified in the destination alias are written on the destination site, overriding the original values.">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>ICG Drush-SiteSpinner</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/Islandora-Collaboration-Group/drush-sitespinner">View on GitHub</a>
+
+          <h1 id="project_title">ICG Drush-SiteSpinner</h1>
+          <h2 id="project_tagline">Drush-SiteSpinner creates a new Drupal multisite based on an existing template site. It uses drush site alias files to describe both the source and destination sites. The source site&#39;s database and files directory are copied to the destination site, and then any variables specified in the destination alias are written on the destination site, overriding the original values.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/Islandora-Collaboration-Group/drush-sitespinner/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/Islandora-Collaboration-Group/drush-sitespinner/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="icg-drush-sitespinner" class="anchor" href="#icg-drush-sitespinner" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>ICG Drush-SiteSpinner</h1>
+
+<h4>
+<a id="download-and-install" class="anchor" href="#download-and-install" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Download And Install</h4>
+
+<p>You can find the latest version on bitbucket:
+<a href="https://bitbucket.org/commonmedia/drush-sitespinner">bitbucket.org/commonmedia/drush-sitespinner</a>
+Best option is to cd into your drush/commands folder, and clone the script:</p>
+
+<pre><code> git clone git@bitbucket.org:commonmedia/drush-sitespinner.git
+</code></pre>
+
+<h4>
+<a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Introduction</h4>
+
+<p>Sitespinner provides two drush commands: sitespinner (ss), and 
+sitespinner-delete (ssd).</p>
+
+<p><strong>Sitespinner</strong> creates a new Drupal multisite based on an existing template site. 
+It uses drush site alias files to describe both the source and destination 
+sites. The source site's database and files directory are copied to the 
+destination site, and then any variables specified in the destination alias are
+written on the destination site, overriding the original values.</p>
+
+<p>This is a novel approach to using site aliases, since normally they are used to
+describe sites that already exist. It occurred to us as we began to think about
+how to supply configuration options to a drush command, that extending the idea 
+of site alias files made a lot of sense. A standard site alias file already 
+provides information about where the site lives and how it is eached ('root' 
+and 'uri'), how it connects to the database, where it's files directory is, etc.</p>
+
+<p>Once source and destination alias files are created, then the command is simply:</p>
+
+<pre><code>drush sitespinner @source-alias @destination-alias
+</code></pre>
+
+<p><strong>Sitespinner-delete</strong> simply deletes a multisite, given the site alias for that
+site. Specifically, it deletes associated database, removes the files directory,
+removes the sites/{site root} directory, and deletes the multisite symlink at
+the drupal root.</p>
+
+<h4>
+<a id="requirements" class="anchor" href="#requirements" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Requirements</h4>
+
+<ul>
+<li>
+<a href="http://ftp.drupal.org/files/projects/drush-All-Versions-2.0.tar.gz">drush-All-Versions-2.0.tar.gz</a> Or later.</li>
+<li>Or any later version should work.</li>
+<li>PHP, Apache2, MySQL or PostgreSQL</li>
+<li>
+<p>sudo (and root privileges) (on other Debian you may need to do:</p>
+
+<p>su root</p>
+</li>
+<li><p>Access to creating databases (MySQL or PostgreSQL or both)</p></li>
+</ul>
+
+<h4>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Usage</h4>
+
+<p>To use this command, you must have a working Drupal site that either already
+is functioning as a multisite, or that you want to function as a multisite. You must
+have created a site alias file for the existing (source) site that you wish to
+use as a template for the new multisite. This can be the root (default) site,
+or another multisite found in the sites directory. Finally, you will need to
+create a site alias file for the new (destination) multisite that you wish to
+create.</p>
+
+<p>Consult the sample aliases file found within the examples folder. Also, consult
+the documentation for drush alias files:</p>
+
+<pre><code>drush topic docs-aliases
+</code></pre>
+
+<p>Alias files are typically installed at ~/.drush/. Consult the above documentation
+for alternate locations.</p>
+
+<p>To be used as a source alias with sitespinner, the source alias file, at a
+minimum, needs to provide values for these:</p>
+
+<pre><code>['root'] (The Drupal root)
+['uri']
+['db_url'] or ['databases']
+['path-aliases']['%files']
+</code></pre>
+
+<p>To be used as a destination site alias, the file needs to provide, at a minimum,
+values for these:</p>
+
+<pre><code>['root'] (This is the drupal root, not the path to the actual multisite's directory under /sites/.)
+['uri']
+['databases']['default']['default'] (IMPORTANT: ['db_url'] will not work!!!!)
+['path-aliases']['%files']
+</code></pre>
+
+<p>Other sitespinner-specific values that you should normally provide:</p>
+
+<pre><code>['sitespinner-destination']['db_creator'] = array(
+    'username' =&gt; "...",
+    'password' =&gt; "...",
+);
+    Since you will be creating a database, you will probably need 
+    to provide a mysql username and password for a more privileged 
+    user than your standard drupal database user. If not provided, then
+    this command will attempt to create the database using the default
+    drupal database connection info.
+
+['sitespinner-destination']['settings_file_template'] 
+    A path to a file to use as a settings.php template. It must contain a
+    line with the text  "$databases = array();". If not provided, the 
+    /sites/default/default.settings.php file will be used.
+
+['sitespinner-destination']['server-environment'] = array(
+    'default_user' =&gt; "...",
+    'default_group' =&gt; "...",
+    'settings_file_permissions' =&gt; '640',
+    'files_directory_permissions' =&gt; '770',
+);
+    Users, groups, and permissions for the files and directories that will be created.
+
+['sitespinner-destination']['create-domain'] = array(
+    'type' =&gt; 'path',
+    'name' =&gt; '...',
+);
+    TODO: Not fully implemented. Read the notes in the sample aliases file.
+</code></pre>
+
+<p>Variable overrides. Any key =&gt; value pairs that you put into the variables array
+will be written to the variables table in the destination site's database. In this way
+you can specify the site name, theme settings, and many other configuration options.
+Any array values will be recursively merged with values provided in inherited (parent) alias
+files.</p>
+
+<pre><code>['sitespinner-destination']['variables'] = array(
+    'key' =&gt; 'value',
+    'another key' =&gt; array(
+        'cool' =&gt; 'I can write arrays to the variables table!'
+    ),
+);
+</code></pre>
+
+<h4>
+<a id="using-parent-aliases" class="anchor" href="#using-parent-aliases" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Using parent aliases</h4>
+
+<p>A little known feature of drush site aliases is that you can specify a comma-separated
+list of site aliases whose properties will be inherited by this alias. To do so, add a
+'parent' key to the alias array:</p>
+
+<pre><code>'parent' =&gt; '@etc, @grandparent, @parent',
+</code></pre>
+
+<p>This can be handy when managing multiple configurations of sites in your multisite
+setup. You can define the characteristics that are common to a given configuration
+in the parent alias, and then in the child site, just provide those details that
+are needed for that site.</p>
+
+<h4>
+<a id="options" class="anchor" href="#options" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Options</h4>
+
+<p>You can use the following flags:</p>
+
+<pre><code>--simulate
+</code></pre>
+
+<p>flag to see what the commands will do to your system. When using simulate there
+will be no changes to your system.</p>
+
+<pre><code>-f
+</code></pre>
+
+<p>Force the script to continue when errors are encountered. E.g.:
+You have tried to install a site but your failed halfway due to permissions.
+You can then change the permissions on your server, and force the script to execute.</p>
+
+<pre><code>-s
+</code></pre>
+
+<p>Silence the script will produce less output, and only prompt you when
+questions are raised.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">ICG Drush-SiteSpinner maintained by <a href="https://github.com/Islandora-Collaboration-Group">Islandora-Collaboration-Group</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>

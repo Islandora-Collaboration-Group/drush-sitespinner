@@ -4,7 +4,10 @@ You can find the latest version on github:
 [https://github.com/Islandora-Collaboration-Group/drush-sitespinner](https://github.com/Islandora-Collaboration-Group/drush-sitespinner)
 Best option is to cd into your drush/commands folder, and clone the script:
 
-     git clone git@bitbucket.org:commonmedia/drush-sitespinner.git
+     git clone https://github.com/Islandora-Collaboration-Group/drush-sitespinner.git
+ or...
+     
+     git clone git@github.com:Islandora-Collaboration-Group/drush-sitespinner.git
 
 #### Introduction
 

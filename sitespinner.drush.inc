@@ -153,6 +153,7 @@ function sitespinner_sitespinner($base, $destination) {
   $drupal_root = $destination_site_alias_record['root'];
   $parse_uri = explode('/', $destination_site_alias_record['uri']);
   $site = end($parse_uri);
+  $multisite_root = $drupal_root . '/sites/' . str_replace('/', '.', $destination_site_alias_record['uri']);
 
   // Determine domain type (path, domain, or subdomain).
   $domain = 'path';
@@ -217,9 +218,13 @@ function sitespinner_sitespinner($base, $destination) {
 
   }
 
-
-  sitespinner_print(dt("Site created. Test it at http://!uri\n", array('!uri' => $destination_site_alias_record['uri'])));
-  sitespinner_print(dt('Be sure to edit the filter-drupal.xml file on the Fedora server to fully enable this site. Documentation: https://wiki.duraspace.org/pages/viewpage.action?pageId=69833569'));
+  $msgs = array('');
+  $msgs[] = dt('!sitepath and its drupal database have been created.', array('!sitepath' => $multisite_root));
+  $msgs[] = '';
+  $msgs[] = dt('Be sure to edit the filter-drupal.xml file on the Fedora server to fully enable this site.');
+  $msgs[] = dt('Documentation: https://wiki.duraspace.org/pages/viewpage.action?pageId=69833569');
+  $msgs[] = '';
+  sitespinner_print($msgs);
   return 0;
 }
 
@@ -284,8 +289,13 @@ function sitespinner_sitespinner_delete($alias) {
   else {
     sitespinner_print(dt('Attempting to delete !symlink, but it does not exist. Skipping...', array('!symlink' => $symlink)) . "\n");
   }
-  sitespinner_print(dt('!sitepath and its drupal database has been deleted.', array('!sitepath' => $multisite_root)));
-  sitespinner_print(dt('Be sure to edit the filter-drupal.xml file on the Fedora server to remove this site. Documentation: https://wiki.duraspace.org/pages/viewpage.action?pageId=69833569'));
+  $msgs = array('');
+  $msgs[] = dt('!sitepath and its drupal database have been deleted.', array('!sitepath' => $multisite_root));
+  $msgs[] = '';
+  $msgs[] = dt('Be sure to edit the filter-drupal.xml file on the Fedora server to remove this site.');
+  $msgs[] = dt('Documentation: https://wiki.duraspace.org/pages/viewpage.action?pageId=69833569');
+  $msgs[] = '';
+  sitespinner_print($msgs);
 }
 
 // }}}

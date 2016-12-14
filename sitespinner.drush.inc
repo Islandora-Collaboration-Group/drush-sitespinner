@@ -221,7 +221,7 @@ function sitespinner_sitespinner($base, $destination) {
   $msgs = array('');
   $msgs[] = dt('!sitepath and its drupal database have been created.', array('!sitepath' => $multisite_root));
   $msgs[] = '';
-  $msgs[] = dt('Be sure to edit the filter-drupal.xml file on the Fedora server to fully enable this site.');
+  $msgs[] = dt('Be sure to edit the filter-drupal.xml file on the Fedora server and then reboot tomcat to finish enabling this site.');
   $msgs[] = dt('Documentation: https://wiki.duraspace.org/pages/viewpage.action?pageId=69833569');
   $msgs[] = '';
   sitespinner_print($msgs);
@@ -292,7 +292,7 @@ function sitespinner_sitespinner_delete($alias) {
   $msgs = array('');
   $msgs[] = dt('!sitepath and its drupal database have been deleted.', array('!sitepath' => $multisite_root));
   $msgs[] = '';
-  $msgs[] = dt('Be sure to edit the filter-drupal.xml file on the Fedora server to remove this site.');
+  $msgs[] = dt('Be sure to edit the filter-drupal.xml file on the Fedora server and restart tomcat to finish removal of this site.');
   $msgs[] = dt('Documentation: https://wiki.duraspace.org/pages/viewpage.action?pageId=69833569');
   $msgs[] = '';
   sitespinner_print($msgs);

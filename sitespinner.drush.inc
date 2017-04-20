@@ -519,6 +519,7 @@ function sitespinner_create_site($destination_site_alias_record) {
   $setings_file_permissions = !empty($destination_site_alias_record['sitespinner-destination']['server-environment']['settings_file_permissions']) ?
     $destination_site_alias_record['sitespinner-destination']['server-environment']['settings_file_permissions'] :
     SITESPINNER_SETTINGS_PERMS;
+  sitespinner_exec("sudo chown " . $default_user . ":" . $default_group . " " . $multisite_root);
   sitespinner_exec("sudo mkdir " . $destination_files_directory);
   sitespinner_exec("sudo chmod " . $files_directory_permissions . " " . $destination_files_directory);
   sitespinner_exec("sudo chown " . $default_user . ":" . $default_group . " " . $destination_files_directory);

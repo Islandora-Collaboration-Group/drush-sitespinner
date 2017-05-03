@@ -284,7 +284,7 @@ function sitespinner_sitespinner_delete($alias) {
 
   // Delete the multisite path symlink at the drupal root, if present.
   if (file_exists($symlink)) {
-    sitespinner_exec(dt('rm !link', array('!link' => $symlink)));
+    sitespinner_exec(dt('sudo rm !link', array('!link' => $symlink)));
   }
   else {
     sitespinner_print(dt('Attempting to delete !symlink, but it does not exist. Skipping...', array('!symlink' => $symlink)) . "\n");

@@ -110,7 +110,7 @@ function sitespinner_drush_help($section) {
       break;
 
     case 'drush:sitespinner-delete' :
-      return dt('sitespinner-delete is a command that deletes the site directory and associated database corresponding to the provided site alias');
+      return dt('sitespinner-delete is a command that deletes the site directory, symlink and associated MySQL database corresponding to the provided site alias');
         break;
   }
 }
@@ -559,10 +559,34 @@ function sitespinner_delete_db($db_spec) {
   drush_include(DRUSH_BASE_PATH . '/commands/sql', 'sql.drush');
   $success = _drush_sql_drop($db_spec);
   if ($success) {
+
+    # Delete the now empty database (drush_sql_drop removes all tables and leaves the empty database shell)
+    $dbhost = $db_spec['host'];
+    $dbuser = $db_spec['username'];
+    $dbpass = $db_spec['password'];
+    $conn   = mysqli_connect($dbhost, $dbuser, $dbpass);
+
+    if (!$conn) {
+      sitespinner_print(dt("Trying to delete database, but failed to connect to database: " . $db_spec["database"] . ".\n"));
+    }
+    sitespinner_print(dt("Trying to delete database, connected successfully to database: " . $db_spec["database"] . ".\n"));
+
+    $sql = "DROP DATABASE " . $db_spec["database"] . ";";
+
+    if (mysqli_query($conn, $sql)) {
+      sitespinner_print(dt("Successfully deleted database: " . $db_spec["database"] . ".\n"));
+    }
+    else {
+      sitespinner_print(dt("Error deleting database: " . $db_spec["database"] . " - " . mysqli_error($conn) . "\n"));
+      $success = FALSE;
+    }
+    mysqli_close($conn);
+  }
+  if ($success) {
     return 1;
   }
   else {
-    sitespinner_print(dt('Could not delete database!'));
+    sitespinner_print(dt("Could not delete database!\n"));
     return 0;
   }
 }

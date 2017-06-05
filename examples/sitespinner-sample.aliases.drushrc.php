@@ -41,7 +41,7 @@
 	$TEMPLATE_SITE_DIRECTORY = "templatesite";                  # directory of live template site to be copied; alphanumeric or dashes; no spaces or underscores; omit trailing slash "/"
 	#--- Server host names ---#
 	$DOMAIN_NAME          = "subdomain.domain.edu";             # subdomain.domain.edu; leave empty if none exists; omit "https://"; omit trailing slash "/"
-	$FEDORA_HOST_NAME     = "subdomain-fedora.williams.edu";  	# full host name (including subdomain, if exists) of server running Fedora (fedora.domain.edu)
+	$FEDORA_HOST_NAME     = "subdomain-fedora.domain.edu";      # full host name (including subdomain, if exists) of server running Fedora (fedora.domain.edu)
 	$DRUPAL_WEB_ROOT_PATH = "/var/www/html";                    # "root" is where the web server's index.php file is located, not the multi-site root; omit trailing slash "/"
 	$SECURITY_MODE        = "https://";                         # "https://" or "http://"
 	#--- MySQL authentication (consider granting all privileges for this db user: absolutely requires CREATE, SELECT, INSERT, DELETE, DROP) ---#

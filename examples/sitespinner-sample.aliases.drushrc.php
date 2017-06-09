@@ -14,7 +14,7 @@
 	 * 2. "parent" - extends "template" alias while offering more granular control for creating children with similar configuration settings
 	 * 3. "destination" - you must customize this value! (e.g. "peace")
 	 *
-	 * COMPLETE INSTRUCTIONS: See readme.md
+	 * COMPLETE INSTRUCTIONS: See https://github.com/Islandora-Collaboration-Group/drush-sitespinner
 	 *
 	 * CREATE A NEW MULTI-SITE: Specify your "template alias" and your "destination alias"
 	 *    drush sitespinner @sitespinner-sample.template @sitespinner-sample.peace

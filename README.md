@@ -66,13 +66,12 @@ You can use the following flags:
 
 * ```drush sa```                          [list all site aliases] [shortcut: "sa" = "site-alias"]
 * ```drush sa @sitespinner-sample```      [shows execution view of a specific alias file, without any actual execution]
-* ```drush topic docs-aliases```          [documentation on writing and installing drush site aliases]
 * ```drush help sa```                     [documentation for site alias]
 * ```drush help```                        [documentation for drush]
 * ```drush help sitespinner```            [documentation for sitespinner create]
 * ```drush help sitespinner-delete```     [documentation for sitespinner delete]
 * ```drush cc drush```                    [clear drush cache] [shortcut: "cc" = "cache-clear"]
-* ```drush topic docs-aliases```          [helpful information on writing and installing drush site aliases]
+* ```drush topic docs-aliases```          [documentation on writing and installing drush site aliases]
 * [more drush help](https://github.com/drush-ops/drush/blob/master/examples/example.aliases.drushrc.php)
 
 ## More information about alias files
@@ -146,9 +145,9 @@ Contact the authors if you want to submit pull requests to us.
 
 ## Authors
 
-* **Chris Warren** - *Initial version of Sitespinner in PHP*
-* **Pat Dunlavey** - *Refactored to use drush*
-* **David Keiser-Clark** - *Bug fixes, readme, working samples* - [dwk2](https://github.com/dwk2)
+* **Andy Cavenaugh** - *Initial version of Sitespinner as bash scripts*
+* **Pat Dunlavey** - *Refactored Sitespinner as a drush command*
+* **David Keiser-Clark** - *Refactored Sitespinner readme and example; bug fixes* - [dwk2](https://github.com/dwk2)
 
 ## License
 

@@ -49,6 +49,8 @@
 	$MYSQL_USERNAME  = "drupal_user";                           # "drupal_user"
 	$MYSQL_PASSWORD  = "some_clever_password";                  # "some_clever_password"
 
+	#TODO: Consider providing two mysql users: one for the site creator, and the other for the drupal user. The user that runs the site should not have the ability to create and destroy databases.
+
 
 	# ---------------------------
 	# NO NEED TO EDIT ANYTHING BELOW THIS LINE ("These aren't the droids you're looking for.")

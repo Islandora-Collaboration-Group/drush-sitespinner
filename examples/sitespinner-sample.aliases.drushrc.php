@@ -1,6 +1,6 @@
 <?php
 	/**
-	 * AUTHORS: Pat Dunlavey, David Keiser-Clark, Chris Warren
+	 * AUTHORS: Andy Cavenaugh, Pat Dunlavey, David Keiser-Clark
 	 *
 	 * DESCRIPTION
 	 * Sitespinner creates a new Drupal multisite based on an existing live template site.
@@ -44,12 +44,12 @@
 	$FEDORA_HOST_NAME     = "subdomain-fedora.domain.edu";      # full host name (including subdomain, if exists) of server running Fedora (fedora.domain.edu)
 	$DRUPAL_WEB_ROOT_PATH = "/var/www/html";                    # "root" is where the web server's index.php file is located, not the multi-site root; omit trailing slash "/"
 	$SECURITY_MODE        = "https://";                         # "https://" or "http://"
-	#--- MySQL authentication (consider granting all privileges for this db user: absolutely requires CREATE, SELECT, INSERT, DELETE, DROP) ---#
-	$MYSQL_HOST_NAME = "subdomain-webdb.domain.edu";            # full host name (include subdomain, if exists) of server running MySQL (mysql.domain.edu)
-	$MYSQL_USERNAME  = "drupal_user";                           # "drupal_user"
-	$MYSQL_PASSWORD  = "some_clever_password";                  # "some_clever_password"
-
-	#TODO: Consider providing two mysql users: one for the site creator, and the other for the drupal user. The user that runs the site should not have the ability to create and destroy databases.
+	#--- MySQL: CREATOR level requires server level permission; SITE level should only have single database permissions ---#
+	$MYSQL_HOST_NAME        = "subdomain-webdb.domain.edu";     # full host name (include subdomain, if exists) of server running MySQL (mysql.domain.edu)
+	$MYSQL_CREATOR_USER     = "db_creator";                     # "db_creator" - Has permission to create and delete databases
+	$MYSQL_CREATOR_PASSWORD = "super_clever_password";          # "super_clever_password"
+	$MYSQL_SITE_USER        = "drupal_user";                    # "drupal_user" - Has site specific permissions, but lacks ability to create and delete databases
+	$MYSQL_SITE_PASSWORD    = "very_clever_password";           # "very_clever_password"
 
 
 	# ---------------------------
@@ -70,7 +70,7 @@
 	$aliases['template'] = array(
 		'root'         => $DRUPAL_WEB_ROOT_PATH,
 		'uri'          => $DOMAIN_NAME . '/' . $TEMPLATE_SITE_DIRECTORY,
-		'db-url'       => 'mysql://' . $MYSQL_USERNAME . ':' . $MYSQL_PASSWORD . '@127.0.0.1/drupal_' . $TEMPLATE_SITE_DIRECTORY,
+		'db-url'       => 'mysql://' . $MYSQL_SITE_USER . ':' . $MYSQL_SITE_PASSWORD . '@127.0.0.1/drupal_' . $TEMPLATE_SITE_DIRECTORY,
 		'path-aliases' => array(
 			// REQUIRED: %files path alias on source is required for sitespinner.
 			'%files' => $DRUPAL_WEB_ROOT_PATH . '/sites/' . $DOMAIN_NAME . '.' . $TEMPLATE_SITE_DIRECTORY . '/files',
@@ -92,8 +92,8 @@
 		// When inherited from a parent alias, the child "sitespinner-destination" array will be recursively merged to the parent array.
 		'sitespinner-destination' => array(
 			'db_creator'             => array(
-				'username' => $MYSQL_USERNAME,
-				'password' => $MYSQL_PASSWORD,
+				'username' => $MYSQL_CREATOR_USER,
+				'password' => $MYSQL_CREATOR_PASSWORD,
 			),
 			// Path to the template's settings file. There must be a line "$databases = array();" in that file.
 			// This will be replaced by the actual database connection information after the file is copied to the new site's root directory.
@@ -172,8 +172,8 @@
 			'default' => array(
 				'default' => array(
 					'database' => 'drupal_' . $DESTINATION_SITE_DIRECTORY,
-					'username' => $MYSQL_USERNAME,
-					'password' => $MYSQL_PASSWORD,
+					'username' => $MYSQL_SITE_USER,
+					'password' => $MYSQL_SITE_PASSWORD,
 					'host'     => '127.0.0.1',
 					'port'     => '3306',
 					'driver'   => 'mysql',

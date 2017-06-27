@@ -15,14 +15,14 @@ Sitespinner copies the template site's database and files directory to the new d
 * [drush-All-Versions-2.0.tar.gz](http://ftp.drupal.org/files/projects/drush-All-Versions-2.0.tar.gz) or any later version should work
 * a working Drupal site that either already is functioning as a multisite, or that you want to function as a multisite
 * PHP, Apache2, MySQL or PostgreSQL
-* sudo (and root privileges) (on other Debian you may need to do: ```su root```
-* Create two database server accounts (MySQL or PostgreSQL)
-  * 'db_creator': needs privileges to create and drop databases
-    * CREATE USER 'db_creator'@'%' IDENTIFIED BY 'super_clever_password';
-    * UPDATE `mysql`.`user` SET `Select_priv`='Y', `Insert_priv`='Y', `Update_priv`='Y', `Delete_priv`='Y', `Create_priv`='Y', `Drop_priv`='Y', `Reload_priv`='N', `References_priv`='Y', `Index_priv`='Y', `Alter_priv`='Y', `Show_db_priv`='Y', `Trigger_priv`='Y' WHERE `Host`='%' and`User`='db_creator';
+* sudo (and root privileges) (on other Debian you may need to do: ```su root```)
+* Create two database server accounts and name them as you wish; you will reference them in your alias file config settings
+  * example #1: 'db_creator' (needs privileges to create and drop databases)
+    * <code>CREATE USER 'db_creator'@'%' IDENTIFIED BY 'super_clever_password';</code>
+    * <code>UPDATE `mysql`.`user` SET `Select_priv`='Y', `Insert_priv`='Y', `Update_priv`='Y', `Delete_priv`='Y', `Create_priv`='Y', `Drop_priv`='Y', `Reload_priv`='N', `References_priv`='Y', `Index_priv`='Y', `Alter_priv`='Y', `Show_db_priv`='Y', `Trigger_priv`='Y' WHERE `Host`='%' and`User`='db_creator';</code>
     * flush privileges;
-  * 'drupal_user': needs privileges to interact with Islandora via web interface (eexclude: create or drop privs)
-    * CREATE USER 'drupal_user'@'%' IDENTIFIED BY 'very_clever_password';
+  * example #2: 'drupal_user' (needs privileges as a web user to interact with Islandora; exclude create or drop privileges)
+    * <code>CREATE USER 'drupal_user'@'%' IDENTIFIED BY 'very_clever_password';</code>
 
 ### Install Sitespinner
 

@@ -4,9 +4,9 @@ Sitespinner provides two drush commands: sitespinner (ss), and sitespinner-delet
 
 1. **sitespinner** creates a new Drupal multisite based on an existing live template site.
 It uses drush site alias files to describe the source (template) and destination (new) sites.
-Sitespinner copies the template site's database and files directory to the new destination site, and then writes any variables specified in the destination alias to the destination site, overriding the original values. This allows you to maintain one live, canonical template site (we call ours: "templatesite") from which all new sites will be based.
+Sitespinner copies the template site's database and files directory to the new destination site, and then writes any variables specified in the destination alias to the destination site, overriding the original values. This allows you to maintain one live, canonical template site (we call ours: ```templatesite```) from which all new sites will be based.
 
-2. **sitespinner-delete** simply deletes a multisite based on the specific site alias you provide. It will permanently delete the site's files (sites/{site root} directory), symlink, and corresponding MySQL database and tables.
+2. **sitespinner-delete** simply deletes a multisite based on the specific site alias you provide. It will permanently delete the site's files (```sites/{site root}``` directory), symlink, and corresponding MySQL database and tables.
 
 ## Getting Started
 
@@ -17,48 +17,54 @@ Sitespinner copies the template site's database and files directory to the new d
 * PHP, Apache2, MySQL or PostgreSQL
 * sudo (and root privileges) (on other Debian you may need to do: ```su root```)
 * Create two database server accounts and name them as you wish; you will reference them in your alias file config settings
-  * example #1: 'db_creator' (needs privileges to create and drop databases)
+  * example #1: ```db_creator``` (needs privileges to create and drop databases)
     * <code>CREATE USER 'db_creator'@'%' IDENTIFIED BY 'super_clever_password';</code>
     * <code>UPDATE `mysql`.`user` SET `Select_priv`='Y', `Insert_priv`='Y', `Update_priv`='Y', `Delete_priv`='Y', `Create_priv`='Y', `Drop_priv`='Y', `Reload_priv`='N', `References_priv`='Y', `Index_priv`='Y', `Alter_priv`='Y', `Show_db_priv`='Y', `Trigger_priv`='Y' WHERE `Host`='%' and`User`='db_creator';</code>
     * flush privileges;
-  * example #2: 'drupal_user' (needs privileges as a web user to interact with Islandora; exclude create or drop privileges)
+  * example #2: ```drupal_user``` (needs privileges as a web user to interact with Islandora; exclude create or drop privileges)
     * <code>CREATE USER 'drupal_user'@'%' IDENTIFIED BY 'very_clever_password';</code>
 
 ### Install Sitespinner
 
-* First, locate your server's "drush" executable file
+* Locate your server's ```drush``` executable file
   * ```which drush```
-* Install sitespinner to the "drush/commands" folder
-  * ```cd /opt/drush-6.x/vendor/drush/drush/commands```
+* Install sitespinner to the ```drush/commands``` folder
+  * example: ```cd /opt/drush-6.x/vendor/drush/drush/commands```
   * ```git clone https://github.com/Islandora-Collaboration-Group/drush-sitespinner.git sitespinner```
-* Copy (and rename) the sample alias file to /home/islandora/.drush/ (alias files are typically installed at ~/.drush/)
-  * ```cp sitespinner/examples/sitespinner-sample.aliases.drushrc.php /home/islandora/.drush/sitespinner-peace.aliases.drushrc.php```
-  * Tip: create an alias file for each new site (i.e. sitespinner-economics.aliases.drushrc.php, sitespinner-faculty.aliases.drushrc.php)
-* Edit "Configuration Settings" in your renamed alias file to define the source and destination aliases
-  * ```cd /home/islandora/.drush```
-  * ```emacs sitespinner-peace.aliases.drushrc.php```
+* Copy the provided sample alias file to ```~/.drush/``` (note: alias files are typically installed here, and the full path will resolve approximately to: ```/home/islandora/.drush/```)
+  * ```cp sitespinner/examples/sitespinner-sample.aliases.drushrc.php ~/.drush/sitespinner-sample.aliases.drushrc.php```
 
 ### Create a new Drupal multi-site
-* Once source and destination aliases are configured, specify your "source" and "destination" aliases:
-  * ```drush sitespinner @sitespinner-sample.template @sitespinner-sample.peace```
-* The command above will create a new multi-site at: https://subdomain.example.edu/peace
-* shortcut: "ss" = "sitespinner"
+* Locate your alias files
+  * ```cd ~/.drush/```
+* Copy an alias file and rename it for new site (example: ```economics```)
+  * ```cp sitespinner-sample.aliases.drushrc.php sitespinner-economics.aliases.drushrc.php```
+* Open the new file and edit the "Configuration Settings" section to specify "source" and "destination" aliases; save changes; close file.
+  * ```emacs sitespinner-economics.aliases.drushrc.php```
+* List all site aliases
+  * ```drush sa```
+* Create new site using "source" and "destination" aliases as arguments (use output from above `drush sa`)
+  * ```drush sitespinner @sitespinner-economics.template @sitespinner-economics.economics```
+* The command above will create a new multi-site at: https://subdomain.example.edu/economics
+* FINAL STEP: see below to "Update the Drupal Filter"
 
 ### Delete one specific preexisting Drupal multi-site
 
 * You must specify your "destination" alias
-  * ```drush sitespinner-delete @sitespinner-sample.peace```
-* The drush command above will permanently delete the site's files (sites/{site root} directory), symlink, and corresponding MySQL database and tables
-* shortcut: "ssd" = "sitespinner-delete"
+  * ```drush sitespinner-delete @sitespinner-economics.economics```
+* The drush command above will permanently delete the site's files (```/var/www/html/sites/economics/```), symlink, and corresponding MySQL database and tables
+* FINAL STEP: see below to "Update the Drupal Filter"
 
-### Important Final Steps
+### Update the Drupal Filter
 
-* Be sure to edit the "filter-drupal.xml" file on the Fedora server to add or remove this site (see [duraspace documentation](https://wiki.duraspace.org/pages/viewpage.action?pageId=69833569))
+* Edit the "filter-drupal.xml" file on the Fedora server to add or remove this site (see [duraspace documentation](https://wiki.duraspace.org/pages/viewpage.action?pageId=69833569))
   * ```cd /usr/local/fedora/server/config/```
-* Restart tomcat:
   * ```sudo su```
+  * ```emacs filter-drupal.xml```
+* Restart tomcat:
   * ```service tomcat restart```
   * ```exit```
+* Done.
 
 ### Options
 

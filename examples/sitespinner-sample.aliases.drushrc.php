@@ -115,7 +115,7 @@
 				'islandora_batch_java'                => "/usr/bin/java",
 				'islandora_lame_url'                  => "/usr/local/bin/lame",
 				'islandora_paged_content_gs'          => "/usr/bin/gs",
-				'islandora_video_ffmpeg_path'         => "/usr/bin/ffmpeg",
+				'islandora_video_ffmpeg_path'         => "/usr/local/bin/ffmpeg",
 				'islandora_video_ffmpeg2theora_path'  => "/usr/bin/ffmpeg2theora",
 				'islandora_kakadu_url'                => "/usr/local/bin/kdu_compress",
 				'islandora_pdf_path_to_pdftotext'     => "/usr/bin/pdftotext",
